@@ -21,13 +21,18 @@ public class UserServiceIMPL implements IUserService {
     }
 
     @Override
+    public User findUserById(Long id) {
+        return userRepository.findById(id).get();
+    }
+
+    @Override
     public boolean existsByUsername(String username) {
         return userRepository.existsByUsername(username);
     }
 
     @Override
-    public boolean existsByPhoneNumber(String phoneNumber) {
-        return userRepository.existsByPhoneNumber(phoneNumber);
+    public boolean existsByEmail(String email) {
+        return userRepository.existsByEmail(email);
     }
 
     @Override

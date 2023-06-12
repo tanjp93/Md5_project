@@ -1,6 +1,8 @@
 package ra.project.controller;
 
 
+import org.springframework.validation.BindingResult;
+import org.springframework.validation.annotation.Validated;
 import ra.project.dto.request.SignInForm;
 import ra.project.dto.request.SignUpForm;
 import ra.project.dto.response.JwtResponse;
@@ -29,7 +31,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 @RestController
-@RequestMapping("/api/v6/auth")
+@RequestMapping("/api/auth")
 @RequiredArgsConstructor
 public class AuthController {
 
@@ -42,7 +44,16 @@ public class AuthController {
 
 
     @PostMapping("/signUp")
-    public ResponseEntity<ResponseMessage> doSignUp(@RequestBody SignUpForm signUpForm) {
+    public ResponseEntity<ResponseMessage> doSignUp(@Validated @RequestBody SignUpForm signUpForm, BindingResult bindingResult) {
+        if (bindingResult.hasErrors()){
+            return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(
+                    ResponseMessage.builder()
+                            .status("FAILED")
+                            .message("Invalid Input!")
+                            .data("")
+                            .build()
+            );
+        }
         boolean isExistUsername = userService.existsByUsername(signUpForm.getUsername());
         if (isExistUsername) {
             return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(
@@ -53,12 +64,12 @@ public class AuthController {
                             .build()
             );
         }
-        boolean isExistPhoneNumber = userService.existsByPhoneNumber(signUpForm.getPhoneNumber());
+        boolean isExistPhoneNumber = userService.existsByEmail(signUpForm.getEmail());
         if (isExistPhoneNumber) {
             return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(
                     ResponseMessage.builder()
                             .status("FAILED")
-                            .message("This phone number is already existed!")
+                            .message("This email is already existed!")
                             .data("")
                             .build()
             );
@@ -92,7 +103,7 @@ public class AuthController {
                 .fullName(signUpForm.getFullName())
                 .username(signUpForm.getUsername())
                 .password(passwordEncoder.encode(signUpForm.getPassword()))
-                .phoneNumber(signUpForm.getPhoneNumber())
+                .email(signUpForm.getEmail())
                 .roles(roles)
                 .build();
 
@@ -107,7 +118,16 @@ public class AuthController {
 
 
     @PostMapping("/signIn")
-    public ResponseEntity<?> doSignIn(@RequestBody SignInForm signInForm) {
+    public ResponseEntity<?> doSignIn(@Validated @RequestBody SignInForm signInForm,BindingResult bindingResult) {
+        if (bindingResult.hasErrors()){
+            return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(
+                    ResponseMessage.builder()
+                            .status("FAILED")
+                            .message("Invalid Input!")
+                            .data("")
+                            .build()
+            );
+        }
         try {
             Authentication authentication = authenticationManager
                     .authenticate(new UsernamePasswordAuthenticationToken(
@@ -135,5 +155,4 @@ public class AuthController {
                             .build(), HttpStatus.UNAUTHORIZED);
         }
     }
-
 }

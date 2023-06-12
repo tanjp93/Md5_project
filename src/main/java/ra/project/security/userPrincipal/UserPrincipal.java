@@ -42,7 +42,7 @@ public class UserPrincipal implements UserDetails {
                 .password(user.getPassword())
                 .fullName(user.getFullName())
                 .avatar(user.getAvatar())
-                .phoneNumber(user.getPhoneNumber())
+                .phoneNumber(user.getEmail())
                 .roles(grantedAuthorities)
                 .build();
     }

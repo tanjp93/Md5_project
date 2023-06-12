@@ -9,8 +9,9 @@ import java.util.Optional;
 
 public interface IUserService {
     List<User> findAllUser();
+    User findUserById(Long id);
     boolean existsByUsername(String username);
-    boolean existsByPhoneNumber(String phoneNumber);
+    boolean existsByEmail(String email);
     Optional<User> findByUsername(String username);
     User save(User user);
 }

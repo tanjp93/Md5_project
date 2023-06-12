@@ -7,8 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import javax.persistence.*;
-import javax.validation.constraints.Size;
-import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 @Entity
@@ -23,7 +22,6 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     @Column(unique = true)
-    @Size(min=2)
     private String username;
 
     @JsonIgnore
@@ -33,8 +31,7 @@ public class User {
 
     @Lob
     private String avatar;
-
-    private String phoneNumber;
+    private String email;
 
     /**
      * LAZY: in các field;
@@ -45,5 +42,8 @@ public class User {
             joinColumns = {@JoinColumn(name = "user_id")},
             inverseJoinColumns = {@JoinColumn(name = "role_id")})
     private Set<Role> roles;
+    @OneToMany(mappedBy = "user",targetEntity = ReceiverAddress.class,fetch = FetchType.LAZY)
+    @JsonIgnore
+    private List<ReceiverAddress> receiverAdressList;
 
 }

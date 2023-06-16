@@ -5,16 +5,19 @@ import org.springframework.stereotype.Service;
 import ra.project.model.ReceiverAddress;
 import ra.project.model.User;
 import ra.project.repository.IReceiverAddressRepository;
-import ra.project.service.IReceiverAddressService;
-import ra.project.service.IUserService;
+import ra.project.service.IService.IReceiverAddressService;
+import ra.project.service.IService.IUserService;
+
 
 import java.util.List;
+
 @Service
-public class IReceiverServiceIMPL implements IReceiverAddressService {
+public class ReceiverServiceIMPL implements IReceiverAddressService {
     @Autowired
     private IReceiverAddressRepository receiverAddressRepository;
     @Autowired
     private IUserService userService;
+
     @Override
     public List<ReceiverAddress> findAllIReceiverAddress() {
         return receiverAddressRepository.findAll();
@@ -27,8 +30,11 @@ public class IReceiverServiceIMPL implements IReceiverAddressService {
 
     @Override
     public List<ReceiverAddress> findAllByUser(Long userId) {
-        User user=userService.findUserById(userId);
-        return receiverAddressRepository.findReceiverAddressByUser(user);
+        User user = userService.findById(userId);
+        if (user != null) {
+            return receiverAddressRepository.findReceiverAddressByUser(user);
+        }
+        return null;
     }
 
     @Override
@@ -42,8 +48,8 @@ public class IReceiverServiceIMPL implements IReceiverAddressService {
     }
 
     @Override
-    public ReceiverAddress save(ReceiverAddress receiverAddress) {
-        return receiverAddressRepository.save(receiverAddress);
+    public void save(ReceiverAddress receiverAddress) {
+        receiverAddressRepository.save(receiverAddress);
     }
 
     @Override

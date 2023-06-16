@@ -7,13 +7,15 @@ import ra.project.dto.request.SignInForm;
 import ra.project.dto.request.SignUpForm;
 import ra.project.dto.response.JwtResponse;
 import ra.project.dto.response.ResponseMessage;
+import ra.project.model.Order;
 import ra.project.model.Role;
 import ra.project.model.RoleName;
 import ra.project.model.User;
 import ra.project.security.jwt.JwtProvider;
 import ra.project.security.userPrincipal.UserPrincipal;
-import ra.project.service.IRoleService;
-import ra.project.service.IUserService;
+import ra.project.service.IService.IOrderService;
+import ra.project.service.IService.IRoleService;
+import ra.project.service.IService.IUserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -41,6 +43,7 @@ public class AuthController {
 
     private final AuthenticationManager authenticationManager;
     private final JwtProvider jwtProvider;
+    private  final IOrderService orderService;
 
 
     @PostMapping("/signUp")
@@ -106,7 +109,8 @@ public class AuthController {
                 .email(signUpForm.getEmail())
                 .roles(roles)
                 .build();
-
+        //creat Order follow User
+        orderService.save(Order.builder().user(user).build());
         return ResponseEntity.ok().body(
                 ResponseMessage.builder()
                         .status("OK")

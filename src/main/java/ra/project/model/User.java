@@ -45,5 +45,9 @@ public class User {
     @OneToMany(mappedBy = "user",targetEntity = ReceiverAddress.class,fetch = FetchType.LAZY)
     @JsonIgnore
     private List<ReceiverAddress> receiverAdressList;
+    @OneToOne
+    @JsonIgnore
+    private PurchaseHistory PurchaseHistory;
+    private boolean status;
 
 }

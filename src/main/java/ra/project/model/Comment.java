@@ -7,9 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import javax.persistence.*;
-import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
-import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -17,15 +15,19 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Order {
+public class Comment {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    @NotNull
-    @OneToOne
-    @JoinColumn(name = "userId")
+    @ManyToOne
+    @JoinColumn(name = "comments")
     private User user;
-    @OneToMany(mappedBy = "order", targetEntity = OrderDetail.class, fetch = FetchType.LAZY)
+    @NotNull
+    private String content;
+    @OneToMany(mappedBy = "comment",targetEntity = Response.class,fetch =FetchType.EAGER )
     @JsonIgnore
-    private List<OrderDetail> orders;
+    private List<Response> responseList;
+    @ManyToOne
+    @JoinColumn(name = "orderDetail")
+    private OrderDetail orderDetail;
 }

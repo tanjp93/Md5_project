@@ -3,7 +3,7 @@ package ra.project.service.serviceIMPL;
 import ra.project.model.Role;
 import ra.project.model.RoleName;
 import ra.project.repository.IRoleRepository;
-import ra.project.service.IRoleService;
+import ra.project.service.IService.IRoleService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 

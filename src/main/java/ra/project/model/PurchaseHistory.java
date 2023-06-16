@@ -7,8 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import javax.persistence.*;
-import javax.validation.constraints.NotBlank;
-import java.util.ArrayList;
+import javax.validation.constraints.NotNull;
 import java.util.List;
 
 @Entity
@@ -16,13 +15,18 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class Category {
+public class PurchaseHistory {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    @NotBlank
-    private  String categoryName;
-    @OneToMany(mappedBy = "category",targetEntity = Product.class,fetch = FetchType.LAZY)
+    @OneToOne
+    @JoinColumn(name = "userId")
+    private User user;
+    @NotNull
+    @OneToOne
+    @JoinColumn(name = "address")
+    private ReceiverAddress address;
+    @OneToMany(mappedBy = "order", targetEntity = OrderDetail.class, fetch = FetchType.LAZY)
     @JsonIgnore
-    private List<Product> productList;
+    private List<OrderDetail> orders;
 }

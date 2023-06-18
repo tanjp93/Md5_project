@@ -19,14 +19,15 @@ public class PurchaseHistory {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    @OneToOne
-    @JoinColumn(name = "userId")
+    @ManyToOne
+    @JoinColumn(name = "user")
     private User user;
+    private String timeBuy;
     @NotNull
     @OneToOne
     @JoinColumn(name = "address")
     private ReceiverAddress address;
-    @OneToMany(mappedBy = "order", targetEntity = OrderDetail.class, fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "purchaseHistory", targetEntity = OrderDetail.class, fetch = FetchType.LAZY)
     @JsonIgnore
-    private List<OrderDetail> orders;
+    private List<OrderDetail> orderDetails;
 }

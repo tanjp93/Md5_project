@@ -1,5 +1,6 @@
 package ra.project.config;
 
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import ra.project.security.jwt.JwtEntryPoint;
 import ra.project.security.jwt.JwtTokenFilter;
 import ra.project.security.userPrincipal.UserDetailService;

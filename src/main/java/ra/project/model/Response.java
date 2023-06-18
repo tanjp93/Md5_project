@@ -21,6 +21,7 @@ public class Response {
     @JoinColumn(name="user")
     private User user;
     @ManyToOne
-    @JoinColumn(name = "comment")
-    private Comment comment;
+    @JoinColumn(name = "feedback")
+    private Feedback feedback;
+
 }

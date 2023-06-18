@@ -20,10 +20,6 @@ public class OrderDetail {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     @NotNull
-    @ManyToOne
-    @JoinColumn(name="orderId")
-    private Order order;
-    @NotNull
     @OneToOne
     @JoinColumn(name="product")
     private Product product;
@@ -33,8 +29,13 @@ public class OrderDetail {
     private int status;
     private float price;
 //    @Column(name = "timeBuy", columnDefinition = "DATE")
-    private String timeBuy;
-    @OneToMany(mappedBy = "orderDetail",targetEntity = Comment.class,fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "orderDetail",targetEntity = Feedback.class,fetch = FetchType.LAZY)
     @JsonIgnore
-    private List<Comment> comment;
+    private List<Feedback> feedback;
+    @ManyToOne
+    @JsonIgnore
+    private Order order;
+    @ManyToOne
+    @JsonIgnore
+    private PurchaseHistory purchaseHistory;
 }

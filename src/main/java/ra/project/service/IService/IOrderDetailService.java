@@ -7,5 +7,4 @@ import ra.project.service.IGenerateService;
 import java.util.List;
 
 public interface IOrderDetailService extends IGenerateService<OrderDetail,Long> {
-    List<OrderDetail> findOrderDetailsByOrder(Order order);
 }

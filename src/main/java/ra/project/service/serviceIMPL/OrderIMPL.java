@@ -36,9 +36,4 @@ public class OrderIMPL implements IOrderService {
     public void deleteById(Long id) {
         orderRepository.deleteById(id);
     }
-
-    @Override
-    public Order findOrderByUser(User user) {
-        return orderRepository.findOrderByUser(user);
-    }
 }

@@ -9,6 +9,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import ra.project.dto.response.ResponseMessage;
 import ra.project.model.ReceiverAddress;
+import ra.project.security.userPrincipal.UserDetailService;
 import ra.project.service.IService.IReceiverAddressService;
 
 
@@ -19,9 +20,10 @@ import java.util.List;
 @RequiredArgsConstructor
 public class AddressController {
     private final IReceiverAddressService receiverAddressService;
+    private final UserDetailService userDetailService;
 
     @PostMapping("")
-    @PreAuthorize("permitAll()")
+    @PreAuthorize("hasAuthority('ADMIN,PM,USER')")
     public ResponseEntity<ResponseMessage> createAddress(@Validated @RequestBody ReceiverAddress address, BindingResult bindingResult) {
         if (bindingResult.hasErrors()) {
             return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(
@@ -82,7 +84,7 @@ public class AddressController {
         return new ResponseEntity<>(receiverAddressService.findAddressById(id), HttpStatus.OK);
     }
     @PutMapping("/update/{addressId}")
-    @PreAuthorize("permitAll()")
+    @PreAuthorize("hasAuthority('ADMIN,PM,USER')")
     public ResponseEntity<?> updateAddress(@PathVariable("addressId") Long addressId, @Validated @RequestBody ReceiverAddress updateAddress) {
         ReceiverAddress receiverAddress1 = receiverAddressService.findAddressById(addressId);
         if (receiverAddress1 == null) {
@@ -100,7 +102,7 @@ public class AddressController {
 
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("permitAll()")
+    @PreAuthorize("hasAuthority('ADMIN,PM,USER')")
     public ResponseEntity<?> deleteAddress(@PathVariable("id") Long id) {
         ReceiverAddress address = receiverAddressService.findAddressById(id);
         if (address != null) {

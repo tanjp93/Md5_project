@@ -8,4 +8,6 @@ import java.util.List;
 
 public interface IPurchaseHistoryService extends IGenerateService<PurchaseHistory,Long> {
     List<PurchaseHistory> findPurchaseHistoriesByTimeBuyBetween(String from, String to);
+    PurchaseHistory findPurchaseHistoriesByUser(User user);
+
 }

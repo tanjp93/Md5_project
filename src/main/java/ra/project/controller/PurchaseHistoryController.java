@@ -7,12 +7,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import ra.project.dto.response.ResponseMessage;
-import ra.project.model.OrderDetail;
-import ra.project.model.PurchaseHistory;
-import ra.project.model.User;
+import ra.project.model.*;
 import ra.project.security.userPrincipal.UserDetailService;
-import ra.project.service.IService.IOrderDetailService;
-import ra.project.service.IService.IPurchaseHistoryService;
+import ra.project.service.IService.*;
+
 import java.util.List;
 
 @RestController
@@ -22,6 +20,9 @@ public class PurchaseHistoryController {
     private final IPurchaseHistoryService purchaseHistoryService;
     private final IOrderDetailService orderDetailService;
     private  final UserDetailService userDetailService;
+    private final IUserService userService;
+    private  final IOrderService orderService;
+    private final IProductService productService;
     @GetMapping
     @PreAuthorize("hasAnyAuthority('ADMIN','PM')")
     public ResponseEntity<?>getRevenue(@RequestParam("from")String from,@RequestParam("to")String to){
@@ -89,4 +90,42 @@ public class PurchaseHistoryController {
         }
         return new ResponseEntity<>(orderDetailService.save(orderDetail),HttpStatus.OK);
     }
+    @PutMapping("/cancel/{id}")
+    @PreAuthorize("hasAnyAuthority('ADMIN','PM','USER')")
+    public ResponseEntity<?>cancelOrderDetail(@PathVariable("id")Long id){
+        OrderDetail orderDetail=orderDetailService.findById(id);
+        PurchaseHistory purchaseHistory1=orderDetail.getPurchaseHistory();
+
+        if (orderDetail.getStatus()!=1||purchaseHistory1==null){
+            return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(
+                    ResponseMessage.builder()
+                            .status("FAILED")
+                            .message("Can not cancel order !")
+                            .data("")
+                            .build());
+        }
+
+        User userLogin=userDetailService.getCurrentUser();
+        //
+        if (userLogin.getId()!=purchaseHistory1.getUser().getId()) {
+            if (!userService.checkManageRole(userLogin)) {
+                return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(
+                        ResponseMessage.builder()
+                                .status("FAILED")
+                                .message("Can not cancel order !")
+                                .data("")
+                                .build());
+            }
+        }
+        //cancel order
+        orderDetail.setOrder(userLogin.getOrder());
+        orderDetail.setPurchaseHistory(null);
+        orderDetail.setStatus(0);
+        orderDetailService.save(orderDetail);
+        Product product=orderDetail.getProduct();
+        product.setStoke(orderDetail.getQuantity()+ product.getStoke());
+        productService.save(product);
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+
 }

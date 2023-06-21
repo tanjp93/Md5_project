@@ -40,4 +40,9 @@ public class PurchaseHistoryIMPL implements IPurchaseHistoryService {
         }
         return purchaseHistoryRepository.findPurchaseHistoriesByTimeBuyBetween(from,to);
     }
+
+    @Override
+    public PurchaseHistory findPurchaseHistoriesByUser(User user) {
+        return purchaseHistoryRepository.findPurchaseHistoriesByUser(user);
+    }
 }

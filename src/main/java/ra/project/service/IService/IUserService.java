@@ -13,4 +13,5 @@ public interface IUserService extends IGenerateService<User,Long> {
     boolean existsByEmail(String email);
     Optional<User> findByUserName(String userName);
     Page<User>findAllUser(Pageable pageable);
+    boolean checkManageRole(User userLogin);
 }

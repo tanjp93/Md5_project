@@ -2,6 +2,7 @@ package ra.project.service.serviceIMPL;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import ra.project.model.Order;
 import ra.project.model.OrderDetail;
 import ra.project.repository.IOrderDetailRepository;
 import ra.project.service.IService.IOrderDetailService;
@@ -35,4 +36,8 @@ public class OrderDetailIMPL implements IOrderDetailService {
          orderDetailRepository.deleteById(id);
     }
 
+    @Override
+    public List<OrderDetail> findOrderDetailsByOrder(Order order) {
+        return orderDetailRepository.findOrderDetailsByOrder(order);
+    }
 }

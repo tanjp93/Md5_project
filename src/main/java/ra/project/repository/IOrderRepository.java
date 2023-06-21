@@ -7,5 +7,5 @@ import ra.project.model.User;
 
 @Repository
 public interface IOrderRepository extends JpaRepository<Order,Long> {
-
+    Order findOrderByUser(User user);
 }

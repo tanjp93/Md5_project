@@ -35,4 +35,9 @@ public class CategoryIMPL implements ICategoryService {
     public void deleteById(Long id) {
         categoryRepository.deleteById(id);
     }
+
+    @Override
+    public boolean existsCategoryByCategoryName(String name) {
+        return categoryRepository.existsCategoryByCategoryName(name);
+    }
 }

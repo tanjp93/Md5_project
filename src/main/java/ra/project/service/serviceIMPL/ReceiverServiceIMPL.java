@@ -29,12 +29,8 @@ public class ReceiverServiceIMPL implements IReceiverAddressService {
     }
 
     @Override
-    public List<ReceiverAddress> findAllByUser(Long userId) {
-        User user = userService.findById(userId);
-        if (user != null) {
-            return receiverAddressRepository.findReceiverAddressByUser(user);
-        }
-        return null;
+    public List<ReceiverAddress> findReceiverAddressByUser(User user) {
+        return receiverAddressRepository.findReceiverAddressByUser(user);
     }
 
     @Override

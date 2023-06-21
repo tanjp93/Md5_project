@@ -19,6 +19,7 @@ import ra.project.dto.response.ResponseMessage;
 import ra.project.model.User;
 import ra.project.security.jwt.JwtProvider;
 import ra.project.security.jwt.JwtTokenFilter;
+import ra.project.security.userPrincipal.UserDetailService;
 import ra.project.service.IService.IUserService;
 import lombok.RequiredArgsConstructor;
 
@@ -26,7 +27,7 @@ import javax.servlet.http.HttpServletRequest;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/v6/user")
+@RequestMapping("/api/user")
 @RequiredArgsConstructor
 public class UserController {
 
@@ -34,9 +35,10 @@ public class UserController {
     private final JwtTokenFilter jwtTokenFilter;
     private final JwtProvider jwtProvider;
     private final PasswordEncoder passwordEncoder;
+    private  final UserDetailService userDetailService;
 
     @GetMapping("")
-    @PreAuthorize("hasAuthority('ADMIN,PM')")
+    @PreAuthorize("hasAnyAuthority('ADMIN','PM')")
     public ResponseEntity<?> findAllUser(Pageable pageable,
                                          @RequestParam("sortBy") String sortBy,
                                          @RequestParam("orderBy") String orderBy
@@ -44,7 +46,9 @@ public class UserController {
         Sort sortable = null;
         if (sortBy == null || sortBy.equals("")) {
             sortBy = "id";
-            orderBy = "asc";
+            if (orderBy == null || orderBy.equals("")){
+                orderBy = "asc";
+            }
         }
         switch (sortBy) {
             case "id":
@@ -68,13 +72,11 @@ public class UserController {
         return new ResponseEntity<>(userService.findAllUser(pageable), HttpStatus.OK);
     }
 
-    @PutMapping("/update/{id}")
-    @PreAuthorize("hasAuthority('ADMIN,PM,USER')")
-    public ResponseEntity<?> updateUser(HttpServletRequest request, @Validated @RequestBody UpdateForm updateUser, BindingResult bindingResult) {
-        String jwt = jwtTokenFilter.getTokenFromRequest(request);
-        String username = jwtProvider.getUserNameFromToken(jwt);
-        User user;
-        if (bindingResult.hasErrors()) {
+    @PutMapping("/update")
+    @PreAuthorize("hasAnyAuthority('ADMIN','PM','USER')")
+    public ResponseEntity<?> updateUser( @Validated @RequestBody UpdateForm updateUser, BindingResult bindingResult) {
+        User userLogin=userDetailService.getCurrentUser();
+        if (bindingResult.hasErrors()||userLogin==null) {
             return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(
                     ResponseMessage.builder()
                             .status("FAILED")
@@ -84,8 +86,7 @@ public class UserController {
         }
 
         try {
-            user = userService.findByUserName(username).orElseThrow(() -> new UsernameNotFoundException("User Not Found with -> username" + username));
-            boolean matches = passwordEncoder.matches(updateUser.getOldPassword(), user.getPassword());
+            boolean matches = passwordEncoder.matches(updateUser.getOldPassword(), userLogin.getPassword());
             if (!matches) {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
                         ResponseMessage.builder()
@@ -94,7 +95,7 @@ public class UserController {
                                 .data("")
                                 .build());
             }
-            if (!updateUser.getEmail().equals(user.getEmail())) {
+            if (!updateUser.getEmail().equals(userLogin.getEmail())) {
                 boolean isExistEmail = userService.existsByEmail(updateUser.getEmail());
                 if (isExistEmail) {
                     return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(
@@ -105,14 +106,14 @@ public class UserController {
                                     .build()
                     );
                 }
-                user.setEmail(updateUser.getEmail());
+                userLogin.setEmail(updateUser.getEmail());
             }
-            user.setPassword(passwordEncoder.encode(updateUser.getPassword()));
-            user.setFullName(updateUser.getFullName());
-            user.setAvatar(updateUser.getAvatar());
-            userService.save(user);
+            userLogin.setPassword(passwordEncoder.encode(updateUser.getPassword()));
+            userLogin.setFullName(updateUser.getFullName());
+            userLogin.setAvatar(updateUser.getAvatar());
+            userService.save(userLogin);
             logout();
-            return new ResponseEntity<>(userService.save(user), HttpStatus.CREATED);
+            return new ResponseEntity<>(HttpStatus.CREATED);
         } catch (UsernameNotFoundException exception) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
                     ResponseMessage.builder()
@@ -124,7 +125,7 @@ public class UserController {
         }
     }
     @GetMapping("/detail")
-    @PreAuthorize("hasAuthority('ADMIN,PM,USER')")
+    @PreAuthorize("hasAnyAuthority('ADMIN','PM')")
     public ResponseEntity<?> getUserDetail(@RequestParam("userId") Long id) {
         User user = userService.findById(id);
         if (user == null) {
@@ -139,7 +140,7 @@ public class UserController {
         return new ResponseEntity<>(user, HttpStatus.OK);
     }
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAuthority('ADMIN')")
+    @PreAuthorize("hasAnyAuthority('ADMIN')")
     public ResponseEntity<?> deleteUser(@PathVariable("id") Long id) {
         User user = userService.findById(id);
         if (user == null) {
@@ -155,6 +156,7 @@ public class UserController {
         return new ResponseEntity<>(HttpStatus.OK);
     }
     @GetMapping("/logout")
+    @PreAuthorize("hasAnyAuthority('ADMIN','PM','USER')")
     public ResponseEntity<ResponseMessage> logout(HttpServletRequest request) {
         String jwt = jwtTokenFilter.getTokenFromRequest(request);
         if (jwt=="" || null == jwt){
@@ -185,5 +187,30 @@ public class UserController {
         }
         return false;
     }
-
+    @PutMapping("/changeStt/{id}")
+    @PreAuthorize("hasAnyAuthority('ADMIN','PM')")
+    public ResponseEntity<?>changeStatus(@PathVariable("id")Long id){
+        User userLogin=userDetailService.getCurrentUser();
+        User user1= userService.findById(id);
+        if (userLogin==null){
+            return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(
+                    ResponseMessage.builder()
+                            .status("FAILED")
+                            .message("User Login not found!")
+                            .data("")
+                            .build()
+            );
+        }
+        if (userLogin.getRoles().size()<user1.getRoles().size()){
+            return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(
+                    ResponseMessage.builder()
+                            .status("FAILED")
+                            .message("Your account is not acceptable for change status!")
+                            .data("")
+                            .build()
+            );
+        }
+        user1.setStatus(!user1.isStatus());
+        return new ResponseEntity<>( userService.save(user1),HttpStatus.CREATED);
+    }
 }

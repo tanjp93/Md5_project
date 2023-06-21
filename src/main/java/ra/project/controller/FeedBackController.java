@@ -9,22 +9,33 @@ import org.springframework.web.bind.annotation.*;
 import ra.project.dto.response.ResponseMessage;
 import ra.project.model.Feedback;
 import ra.project.model.OrderDetail;
+import ra.project.model.Role;
+import ra.project.model.User;
+import ra.project.security.userPrincipal.UserDetailService;
 import ra.project.service.IService.IFeedbackService;
 import ra.project.service.IService.IOrderDetailService;
+import ra.project.service.IService.IOrderService;
+import ra.project.service.IService.IUserService;
 
 import java.util.List;
+import java.util.Set;
 
 @RestController
-@RequestMapping("/feedback")
+@RequestMapping("/api/feedback")
 @RequiredArgsConstructor
 public class FeedBackController {
     private final IOrderDetailService orderDetailService;
     private final IFeedbackService feedbackService;
+    private final UserDetailService userDetailService;
+    private final IUserService userService;
+    private final IOrderService orderService;
+
     @GetMapping
-    @PreAuthorize("hasAuthority('ADMIN,PM,USER')")
-    public ResponseEntity<?>getFeedbackById(@RequestParam("id")Long id){
-        Feedback feedback=feedbackService.findById(id);
-        if (feedback==null){
+    @PreAuthorize("hasAnyAuthority('ADMIN','PM','USER')")
+    public ResponseEntity<?> getFeedbackById(@RequestParam("id") Long id) {
+        User userLogin=userDetailService.getCurrentUser();
+        Feedback feedback = feedbackService.findById(id);
+        if (feedback == null||feedback.getUser().getId()!=userLogin.getId()) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
 
@@ -36,10 +47,13 @@ public class FeedBackController {
                         .build()
         );
     }
+
     @PostMapping
-    @PreAuthorize("hasAuthority('ADMIN,PM,USER')")
-    public ResponseEntity<?>addFeedback(@RequestBody Feedback feedback, BindingResult bindingResult){
-        if (bindingResult.hasErrors()){
+    @PreAuthorize("hasAnyAuthority('ADMIN','PM','USER')")
+    public ResponseEntity<?> addFeedback(@RequestBody Feedback feedback, BindingResult bindingResult) {
+        User userLogin = userDetailService.getCurrentUser();
+        OrderDetail orderDetail = orderDetailService.findById(feedback.getOrderDetail().getId());
+        if (bindingResult.hasErrors()||userLogin==null||orderDetail==null) {
             return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(
                     ResponseMessage.builder()
                             .status("FAILED")
@@ -48,42 +62,61 @@ public class FeedBackController {
                             .build()
             );
         }
-        OrderDetail orderDetail=feedback.getOrderDetail();
-        if (orderDetail.getStatus()<3){
+        User userBuy=null;
+        if (orderDetail.getOrder()!=null){
+            userBuy=orderDetail.getOrder().getUser();
+        }else {
+            userBuy=orderDetail.getPurchaseHistory().getUser();
+        }
+        if (userBuy.getId()!=userLogin.getId()||!userService.checkManageRole(userLogin)){
             return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(
                     ResponseMessage.builder()
                             .status("FAILED")
-                            .message("Invalid input")
+                            .message("Can not authenticate user!")
                             .data("")
                             .build()
             );
+        }
+        feedback.setUser(userLogin);
+        feedback.setOrderDetail(orderDetail);
+        if (orderDetail.getStatus() < 3) {
+            feedback.setVote(5L);
         }
         feedbackService.save(feedback);
-        List<Feedback> feedbackList=orderDetail.getFeedback();
-        feedbackList.remove(feedback);
-        orderDetail.setFeedback(feedbackList);
-        orderDetailService.save(orderDetail);
         return new ResponseEntity<>(HttpStatus.OK);
     }
+
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAuthority('ADMIN,PM,USER')")
-    public ResponseEntity<?>deleteFeedback(@PathVariable("id")Long id){
-        Feedback feedback=feedbackService.findById(id);
-        if (feedback==null){
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+    @PreAuthorize("hasAnyAuthority('ADMIN','PM','USER')")
+    public ResponseEntity<?> deleteFeedback(@PathVariable("id") Long id) {
+        User userLogin = userDetailService.getCurrentUser();
+        Feedback feedback = feedbackService.findById(id);
+        if (userLogin==null||feedback==null) {
+            return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(
                     ResponseMessage.builder()
                             .status("FAILED")
-                            .message("Id is not available!")
+                            .message("Invalid authentication!")
+                            .data("")
+                            .build()
+            );
+        }
+        User userBuy=null;
+        OrderDetail orderDetail = orderDetailService.findById(feedback.getOrderDetail().getId());
+        if (orderDetail.getOrder()!=null){
+            userBuy=orderDetail.getOrder().getUser();
+        }else {
+            userBuy=orderDetail.getPurchaseHistory().getUser();
+        }
+        if (userBuy.getId()!=userLogin.getId()){
+            return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(
+                    ResponseMessage.builder()
+                            .status("FAILED")
+                            .message("Can not authenticate user!")
                             .data("")
                             .build()
             );
         }
         feedbackService.deleteById(id);
-        OrderDetail orderDetail=feedback.getOrderDetail();
-        List<Feedback> feedbackList=orderDetail.getFeedback();
-        feedbackList.remove(feedback);
-        orderDetail.setFeedback(feedbackList);
-        orderDetailService.save(orderDetail);
         return new ResponseEntity<>(HttpStatus.OK);
     }
 }

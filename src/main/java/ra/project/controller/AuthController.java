@@ -28,7 +28,10 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import ra.project.service.serviceIMPL.SendEmailService;
 
+import javax.mail.MessagingException;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -43,12 +46,13 @@ public class AuthController {
 
     private final AuthenticationManager authenticationManager;
     private final JwtProvider jwtProvider;
-    private  final IOrderService orderService;
+    private final IOrderService orderService;
+    private final SendEmailService emailService;
 
 
     @PostMapping("/signUp")
-    public ResponseEntity<ResponseMessage> doSignUp(@Validated @RequestBody SignUpForm signUpForm, BindingResult bindingResult) {
-        if (bindingResult.hasErrors()){
+    public ResponseEntity<ResponseMessage> doSignUp(@Validated @RequestBody SignUpForm signUpForm, BindingResult bindingResult) throws MessagingException {
+        if (bindingResult.hasErrors()) {
             return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(
                     ResponseMessage.builder()
                             .status("FAILED")
@@ -67,8 +71,8 @@ public class AuthController {
                             .build()
             );
         }
-        boolean isExistPhoneNumber = userService.existsByEmail(signUpForm.getEmail());
-        if (isExistPhoneNumber) {
+        boolean existsByEmail = userService.existsByEmail(signUpForm.getEmail());
+        if (existsByEmail) {
             return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(
                     ResponseMessage.builder()
                             .status("FAILED")
@@ -98,6 +102,11 @@ public class AuthController {
                         Role userRole = roleService.findByName(RoleName.USER)
                                 .orElseThrow(() -> new RuntimeException("Failed -> NOT FOUND ROLE"));
                         roles.add(userRole);
+                        break;
+                    default:
+                        Role role1 = roleService.findByName(RoleName.USER)
+                            .orElseThrow(() -> new RuntimeException("Failed -> NOT FOUND ROLE"));
+                        roles.add(role1);
                 }
             });
         }
@@ -108,22 +117,30 @@ public class AuthController {
                 .password(passwordEncoder.encode(signUpForm.getPassword()))
                 .email(signUpForm.getEmail())
                 .roles(roles)
+                .status(true)
                 .build();
-        //creat Order follow User
-        orderService.save(Order.builder().user(user).build());
+        //creat Order follow User+
+        //
+        User user1=userService.save(user);
+        Order order=orderService.save(new Order(0L,user1,null));
+        user1.setOrder(order);
+        userService.save(user1);
+        String html = "<b>Chúc mừng bạn đăng kí thành công user : </b>"+user.getUsername();
+        emailService.sendEmail("buitan561993@gmail.com","Đăng kí thành công", html);
+
         return ResponseEntity.ok().body(
                 ResponseMessage.builder()
                         .status("OK")
                         .message("Account created successfully!")
-                        .data(userService.save(user))
+                        .data("")
                         .build()
         );
     }
 
 
     @PostMapping("/signIn")
-    public ResponseEntity<?> doSignIn(@Validated @RequestBody SignInForm signInForm,BindingResult bindingResult) {
-        if (bindingResult.hasErrors()){
+    public ResponseEntity<?> doSignIn(@Validated @RequestBody SignInForm signInForm, BindingResult bindingResult) {
+        if (bindingResult.hasErrors()) {
             return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(
                     ResponseMessage.builder()
                             .status("FAILED")
@@ -141,6 +158,14 @@ public class AuthController {
 
             String token = jwtProvider.generateToken(authentication);
             UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
+            if (!userPrincipal.isStatus()) {
+                return new ResponseEntity<>(
+                        ResponseMessage.builder()
+                                .status("Failed")
+                                .message("Your account is blocked!")
+                                .data("")
+                                .build(), HttpStatus.NOT_ACCEPTABLE);
+            }
             return new ResponseEntity<>(
                     JwtResponse.builder()
                             .status("OK")

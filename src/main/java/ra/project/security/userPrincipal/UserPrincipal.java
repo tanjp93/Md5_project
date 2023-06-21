@@ -27,6 +27,7 @@ public class UserPrincipal implements UserDetails {
     private String fullName;
     private String avatar;
     private String phoneNumber;
+    private boolean status;
     private Collection<? extends GrantedAuthority> roles;
 
 
@@ -44,6 +45,7 @@ public class UserPrincipal implements UserDetails {
                 .avatar(user.getAvatar())
                 .phoneNumber(user.getEmail())
                 .roles(grantedAuthorities)
+                .status(user.isStatus())
                 .build();
     }
 

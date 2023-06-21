@@ -6,5 +6,5 @@ import ra.project.model.Category;
 
 @Repository
 public interface ICategoryRepository extends JpaRepository<Category,Long> {
-
+    boolean existsCategoryByCategoryName(String name);
 }

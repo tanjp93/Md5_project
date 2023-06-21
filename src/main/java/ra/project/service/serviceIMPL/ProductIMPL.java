@@ -13,7 +13,7 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class ProductIMPL implements IProductService {
-    private IProductRepository productRepository;
+    private final IProductRepository productRepository;
     @Override
     public List<Product> findAll() {
         return productRepository.findAll();
@@ -43,5 +43,10 @@ public class ProductIMPL implements IProductService {
     @Override
     public Page<Product> findAll(Pageable pageable) {
         return productRepository.findAll(pageable);
+    }
+
+    @Override
+    public boolean existsProductByProductName(String name) {
+        return productRepository.existsProductByProductName(name);
     }
 }

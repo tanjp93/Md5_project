@@ -3,6 +3,7 @@ package ra.project.service.serviceIMPL;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import ra.project.model.PurchaseHistory;
+import ra.project.model.User;
 import ra.project.repository.IPurchaseHistoryRepository;
 import ra.project.service.IService.IPurchaseHistoryService;
 

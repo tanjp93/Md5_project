@@ -13,10 +13,15 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import ra.project.dto.response.ResponseMessage;
 import ra.project.model.Category;
+import ra.project.model.Description;
 import ra.project.model.Product;
+import ra.project.model.User;
+import ra.project.security.userPrincipal.UserDetailService;
 import ra.project.service.IService.ICategoryService;
+import ra.project.service.IService.IDescriptionService;
 import ra.project.service.IService.IProductService;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @RestController
@@ -26,9 +31,12 @@ public class ProductController {
     private IProductService productService;
     @Autowired
     private ICategoryService categoryService;
+    @Autowired
+    private UserDetailService userDetailService;
+    @Autowired
+    private IDescriptionService descriptionService;
 
     @GetMapping
-    @PreAuthorize("hasAuthority('AMIN,PM,USER')")
     public ResponseEntity<?> getAllProduct(Pageable pageable,
                                            @RequestParam("sortBy") String sortBy,
                                            @RequestParam("orderBy") String orderBy) {
@@ -37,7 +45,6 @@ public class ProductController {
     }
 
     @GetMapping("/detail")
-    @PreAuthorize("permitAll()")
     public ResponseEntity<?> findById(@RequestParam("id") Long id) {
         Product product = productService.findById(id);
         if (product == null) {
@@ -53,13 +60,7 @@ public class ProductController {
     }
 
     @GetMapping("/searchByCategory")
-    @PreAuthorize("hasAuthority('ADMIN,PM,USER')")
-    public ResponseEntity<?> getAllProductByCategoryId(@RequestParam("categoryId") Long categoryId,
-                                                       @RequestParam("sortBy") String sortBy,
-                                                       @RequestParam("orderBy") String orderBy,
-                                                       Pageable pageable
-    ) {
-        pageable = getPageable(pageable, sortBy, orderBy);
+    public ResponseEntity<?> getAllProductByCategoryId(@RequestParam("categoryId") Long categoryId) {
         Category category = categoryService.findById(categoryId);
         List<Product> productList = null;
         if (category != null) {
@@ -78,10 +79,10 @@ public class ProductController {
     }
 
     @PostMapping
-    @PreAuthorize("hasAuthority('ADMIN,PM')")
+    @PreAuthorize("hasAnyAuthority('ADMIN','PM')")
     public ResponseEntity<?> createProduct(@Validated @RequestBody Product product, BindingResult bindingResult) {
-        if (bindingResult.hasErrors()) {
-            ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(
+        if (bindingResult.hasFieldErrors()) {
+            return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(
                     ResponseMessage.builder()
                             .status("FAILED")
                             .message("Create failed")
@@ -89,21 +90,67 @@ public class ProductController {
                             .build()
             );
         }
+        User userLogin =userDetailService.getCurrentUser();
+        if (userLogin == null) {
+            return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(
+                    ResponseMessage.builder()
+                            .status("FAILED")
+                            .message("User Login is not found!")
+                            .data("")
+                            .build()
+            );
+        }
+        if (productService.existsProductByProductName(product.getProductName())){
+            return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(
+                    ResponseMessage.builder()
+                            .status("FAILED")
+                            .message("Product name is existed!")
+                            .data("")
+                            .build()
+            );
+        }
+        Category category=categoryService.findById(product.getCategory().getId());
+        if (category==null){
+            return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(
+                    ResponseMessage.builder()
+                            .status("FAILED")
+                            .message("Category not found !")
+                            .data(product)
+                            .build()
+            );
+        }
+        List<Product>productList=category.getProductList();
+        if (productList==null){
+            productList=new ArrayList<>();
+        }
+        productList.add(product);
+        category.setProductList(productList);
+        categoryService.save(category);
         productService.save(product);
         return ResponseEntity.status(HttpStatus.CREATED).body(
                 ResponseMessage.builder()
                         .status("CREATED")
                         .message("Create successfully")
-                        .data("")
+                        .data(product)
                         .build()
         );
     }
 
     @PutMapping("update/{id}")
-    @PreAuthorize("hasAuthority('AMIN,PM')")
-    public ResponseEntity<?> updateProduct(@PathVariable("id") Long id, @Validated @RequestBody Product product, BindingResult bindingResult) {
-        Product product1 = productService.findById(id);
-        if (product1 == null || bindingResult.hasErrors()) {
+    @PreAuthorize("hasAnyAuthority('ADMIN','PM')")
+    public ResponseEntity<?> updateProduct(@PathVariable("id") Long id, @Validated @RequestBody Product productUpdate, BindingResult bindingResult) {
+        User userLogin =userDetailService.getCurrentUser();
+        if (userLogin == null) {
+            return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(
+                    ResponseMessage.builder()
+                            .status("FAILED")
+                            .message("User Login is not found!")
+                            .data("")
+                            .build()
+            );
+        }
+        Product product = productService.findById(id);
+        if (product == null || bindingResult.hasErrors()) {
             ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(
                     ResponseMessage.builder()
                             .status("FAILED")
@@ -112,8 +159,19 @@ public class ProductController {
                             .build()
             );
         }
-        product.setId(id);
-        productService.save(product);
+        if (!productUpdate.getProductName().toLowerCase().equals(product.getProductName().toLowerCase())){
+            if (productService.existsProductByProductName(productUpdate.getProductName())){
+                return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(
+                        ResponseMessage.builder()
+                                .status("FAILED")
+                                .message("Product name is existed!")
+                                .data("")
+                                .build()
+                );
+            }
+        }
+        productUpdate.setId(id);
+        productService.save(productUpdate);
         return ResponseEntity.status(HttpStatus.CREATED).body(
                 ResponseMessage.builder()
                         .status("OK")
@@ -124,8 +182,18 @@ public class ProductController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAuthority('ADMIN,PM,USER')")
+    @PreAuthorize("hasAnyAuthority('ADMIN','PM')")
     public ResponseEntity<?> deleteProduct(@PathVariable("id") Long id) {
+        User userLogin =userDetailService.getCurrentUser();
+        if (userLogin == null) {
+            return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(
+                    ResponseMessage.builder()
+                            .status("FAILED")
+                            .message("User Login is not found!")
+                            .data("")
+                            .build()
+            );
+        }
         Product product = productService.findById(id);
         if (product == null) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
@@ -135,6 +203,12 @@ public class ProductController {
                             .data("")
                             .build()
             );
+        }
+        List<Description>descriptionList=descriptionService.findDescriptionsByProduct(product);
+        if (descriptionList!=null || !descriptionList.isEmpty()){
+            for (Description de:descriptionList ) {
+                descriptionService.deleteById(de.getId());
+            }
         }
         productService.deleteById(id);
         return ResponseEntity.status(HttpStatus.OK).body(

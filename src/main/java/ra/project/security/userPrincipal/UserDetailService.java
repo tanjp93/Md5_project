@@ -1,5 +1,6 @@
 package ra.project.security.userPrincipal;
 
+import org.springframework.context.annotation.Scope;
 import org.springframework.security.core.context.SecurityContextHolder;
 import ra.project.model.User;
 import ra.project.repository.IUserRepository;
@@ -49,4 +50,6 @@ public class UserDetailService implements UserDetailsService {
         }
         return user.get();
     }
+
+
 }

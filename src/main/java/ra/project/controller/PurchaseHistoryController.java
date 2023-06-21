@@ -16,15 +16,15 @@ import ra.project.service.IService.IPurchaseHistoryService;
 import java.util.List;
 
 @RestController
-@RequestMapping("/purchaseHistory")
+@RequestMapping("/api/purchaseHistory")
 @RequiredArgsConstructor
 public class PurchaseHistoryController {
     private final IPurchaseHistoryService purchaseHistoryService;
     private final IOrderDetailService orderDetailService;
     private  final UserDetailService userDetailService;
     @GetMapping
-    @PreAuthorize("hasAuthority('ADMIN,PM')")
-    private ResponseEntity<?>getRevenue(@RequestParam("from")String from,@RequestParam("to")String to){
+    @PreAuthorize("hasAnyAuthority('ADMIN','PM')")
+    public ResponseEntity<?>getRevenue(@RequestParam("from")String from,@RequestParam("to")String to){
         User user=userDetailService.getCurrentUser();
         if (user == null) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
@@ -49,7 +49,9 @@ public class PurchaseHistoryController {
         for (int i = 0; i <purchaseHistories.size() ; i++) {
             List<OrderDetail>orderDetails=purchaseHistories.get(i).getOrderDetails();
             for (int j = 0; j <orderDetails.size(); j++) {
-                revenue+=orderDetails.get(j).getPrice()*orderDetails.get(j).getQuantity();
+                if (orderDetails.get(j).getStatus()==3){
+                    revenue+=orderDetails.get(j).getPrice()*orderDetails.get(j).getQuantity();
+                }
             }
         }
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
@@ -61,11 +63,10 @@ public class PurchaseHistoryController {
         );
     }
     @PutMapping("/changeSttOrderDetail/{orderDetail_id}")
-    @PreAuthorize("hasAuthor")
-    private ResponseEntity<?>updateSttOrderDetail(@PathVariable("orderDetail_id")Long id){
+    @PreAuthorize("hasAnyAuthority('ADMIN','PM','USER')")
+    public ResponseEntity<?>updateSttOrderDetail(@PathVariable("orderDetail_id")Long id){
         OrderDetail orderDetail= orderDetailService.findById(id);
         if (orderDetail==null){
-            if (orderDetail.getStatus()>=3||orderDetail.getStatus()<1)
             return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(
                     ResponseMessage.builder()
                             .status("FAILED")
@@ -78,11 +79,14 @@ public class PurchaseHistoryController {
             return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(
                     ResponseMessage.builder()
                             .status("FAILED")
-                            .message("OrderDetail is not available!")
+                            .message("Change status failed!")
                             .data("")
                             .build());
         }
         orderDetail.setStatus(orderDetail.getStatus()+1);
+        if (orderDetail.getStatus()>3){
+            orderDetail.setStatus(3);
+        }
         return new ResponseEntity<>(orderDetailService.save(orderDetail),HttpStatus.OK);
     }
 }

@@ -4,16 +4,11 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.stereotype.Controller;
-import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import ra.project.dto.response.ResponseMessage;
 import ra.project.model.*;
 import ra.project.security.userPrincipal.UserDetailService;
-import ra.project.service.IService.IOrderDetailService;
-import ra.project.service.IService.IOrderService;
-import ra.project.service.IService.IPurchaseHistoryService;
-import ra.project.service.IService.IUserService;
+import ra.project.service.IService.*;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -24,16 +19,18 @@ import java.util.List;
 @RequestMapping("/api/order")
 @RequiredArgsConstructor
 public class OrderController {
-    private final IUserService userService;
     private final IOrderService orderService;
     private final UserDetailService userDetailService;
     private final IOrderDetailService orderDetailService;
     private final IPurchaseHistoryService purchaseHistoryService;
+    private final IProductService productService;
+    private final IReceiverAddressService addressService;
 
-    @GetMapping("/getOrder")
-    @PreAuthorize("hasAuthority('AMIN,PM')")
-    private ResponseEntity<?>getOrderByUserId(Long userId){
-        User user= userService.findById(userId);
+
+    @GetMapping
+    @PreAuthorize("hasAnyAuthority('ADMIN','PM','USER')")
+    public ResponseEntity<?>getOrder(){
+        User user= userDetailService.getCurrentUser();
         if (user == null) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
                     ResponseMessage.builder()
@@ -46,25 +43,10 @@ public class OrderController {
         Order order=user.getOrder();
         return new ResponseEntity<>(order, HttpStatus.OK);
     }
-    @GetMapping("/getOrderByUserLogin")
-    @PreAuthorize("hasAuthority('AMIN,PM,USER')")
-    private ResponseEntity<?>getOrderByUserLogin(){
-        User userLogin=userDetailService.getCurrentUser();
-        if (userLogin==null){
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
-                    ResponseMessage.builder()
-                            .status("FAILED")
-                            .message("UserLogin not found!")
-                            .data("")
-                            .build()
-            );
-        }
-        Order order=userLogin.getOrder();
-        return new ResponseEntity<>(order, HttpStatus.OK);
-    }
+
     @PostMapping("/addToCart")
-    @PreAuthorize("hasAuthority('AMIN,PM,USER')")
-    private ResponseEntity<?>addToCart(OrderDetail orderDetail){
+    @PreAuthorize("hasAnyAuthority('ADMIN','PM','USER')")
+    public ResponseEntity<?>addToCart(@RequestBody OrderDetail orderDetail){
         User userLogin=userDetailService.getCurrentUser();
         if (userLogin==null){
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
@@ -75,27 +57,27 @@ public class OrderController {
                             .build()
             );
         }
-        Order order=userLogin.getOrder();
-        List<OrderDetail>orderDetailList=order.getOrderDetails();
+        Order order=orderService.findOrderByUser(userLogin);
+        orderDetail.setStatus(0);
+        orderDetail.setPrice(productService.findById(orderDetail.getProduct().getId()).getPrice());
+        orderDetail.setOrder(order);
+        List<OrderDetail>orderDetailList=orderDetailService.findOrderDetailsByOrder(order);
         for (OrderDetail o:orderDetailList ) {
             if (o.getProduct().getId()==orderDetail.getProduct().getId()){
-                o.setQuantity(o.getQuantity()+orderDetail.getQuantity());
-                orderDetailService.save(o);
-                orderService.save(order);
-                return new ResponseEntity<>( orderService.save(order),HttpStatus.OK);
+                orderDetail.setId(o.getId());
+                orderDetail.setQuantity(o.getQuantity()+orderDetail.getQuantity());
+                return new ResponseEntity<>(orderDetailService.save(orderDetail),HttpStatus.OK);
             }
         }
-        orderDetail.setStatus(0);
-        orderDetail.setPrice(orderDetail.getProduct().getPrice());
         orderDetailList.add(orderDetail);
         order.setOrderDetails(orderDetailList);
-        orderService.save(order);
-        return new ResponseEntity<>( orderService.save(order),HttpStatus.OK);
+        return new ResponseEntity<>( orderDetailService.save(orderDetail),HttpStatus.OK);
     }
-    @PutMapping("/buyProduct")
-    @PreAuthorize("hasAuthority('AMIN,PM,USER')")
-    private ResponseEntity<?>buyProduct(List<OrderDetail>buyList, @RequestBody ReceiverAddress address){
+    @PutMapping("/buyProduct/{toAddressId}")
+    @PreAuthorize("hasAnyAuthority('ADMIN','PM','USER')")
+    public ResponseEntity<?>buyProduct(@PathVariable("toAddressId")Long addressId, @RequestBody List<OrderDetail>buyList ){
         User userLogin=userDetailService.getCurrentUser();
+        ReceiverAddress address=addressService.findAddressById(addressId);
         if (userLogin==null){
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
                     ResponseMessage.builder()
@@ -105,30 +87,43 @@ public class OrderController {
                             .build()
             );
         }
-        if (!userLogin.getReceiverAdressList().contains(address)){
+        List<ReceiverAddress>receiverAddresses=addressService.findReceiverAddressByUser(userLogin);
+        if (receiverAddresses==null||receiverAddresses.isEmpty()||address==null){
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
                     ResponseMessage.builder()
                             .status("FAILED")
-                            .message("Address not found!")
+                            .message("Create Address first!")
                             .data("")
-                            .build()
-            );
+                            .build());
         }
-        Order cart=userLogin.getOrder();
-        List<OrderDetail> buyProducts=new ArrayList<>();
-        for (OrderDetail od: buyList) {
-            for (OrderDetail orderDetail: cart.getOrderDetails()){
-                if (od.getId()==orderDetail.getId()){
-                    orderDetail.setPrice(orderDetail.getProduct().getPrice());
-                    orderDetail.setStatus(1);
-                    cart.getOrderDetails().remove(orderDetail);
-                    orderDetailService.save(orderDetail);
-                    orderService.save(cart);
-                    buyProducts.add(orderDetail);
+        boolean check=false;
+        for (ReceiverAddress address1:receiverAddresses ) {
+            if (address1.getId()==address.getId()){
+                address=address1;
+                check=true;
+                break;
+            }
+        }
+        if (!check){
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+                    ResponseMessage.builder()
+                            .status("FAILED")
+                            .message("Address is not available!")
+                            .data("")
+                            .build());
+        }
+        Order cart=orderService.findOrderByUser(userLogin);
+        List<OrderDetail> orderDetailList=orderDetailService.findOrderDetailsByOrder(cart);
+        boolean isExistedOrderDetailId=false;
+        for (OrderDetail orderDetail:orderDetailList) {
+            for (OrderDetail o:buyList ) {
+                if (orderDetail.getId()==o.getId()){
+                    isExistedOrderDetailId=true;
+                    break;
                 }
             }
         }
-        if (buyProducts.isEmpty()){
+        if (!isExistedOrderDetailId){
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
                     ResponseMessage.builder()
                             .status("FAILED")
@@ -137,23 +132,41 @@ public class OrderController {
                             .build()
             );
         }
+        List<OrderDetail> buyProducts=new ArrayList<>();
         PurchaseHistory purchaseHistory=PurchaseHistory.builder()
                 .timeBuy(LocalDate.now().toString())
                 .user(userLogin)
                 .address(address)
                 .orderDetails(buyProducts)
                 .build();
-        purchaseHistoryService.save(purchaseHistory);
-        return new ResponseEntity<>(userLogin.getOrder(),HttpStatus.OK);
+        purchaseHistory= purchaseHistoryService.save(purchaseHistory);
+        Product product;
+        for (OrderDetail orderDetail:orderDetailList) {
+            for (OrderDetail o:buyList ) {
+                if (orderDetail.getId()==o.getId()){
+                    orderDetail.setStatus(1);
+                    orderDetail.setOrder(null);
+                    orderDetail.setPurchaseHistory(purchaseHistory);
+                    buyProducts.add(orderDetail);
+                    product=productService.findById(orderDetail.getProduct().getId());
+                    Long stock1=product.getStoke()-orderDetail.getQuantity();
+                    if (stock1<0){
+                        return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(
+                                ResponseMessage.builder()
+                                        .status("FAILED")
+                                        .message("Quantity is over!")
+                                        .data("")
+                                        .build()
+                        );
+                    }
+                    product.setStoke(stock1);
+                    productService.save(product);
+                    orderDetailService.save(orderDetail);
+                }
+            }
+        }
+
+        //k tim thay san pham trong cart
+        return new ResponseEntity<>(HttpStatus.OK);
     }
-//    private boolean checkOrderDetailInCartUser(OrderDetail orderDetail,User userLogin){
-//        Order order=userLogin.getOrder();
-//        List<OrderDetail>orderDetailList=order.getOrderDetails();
-//        for (OrderDetail o:orderDetailList ) {
-//            if (o.getProduct().getId()==orderDetail.getProduct().getId()){
-//                return true;
-//            }
-//        }
-//        return false;
-//    }
 }

@@ -3,6 +3,7 @@ package ra.project.service.serviceIMPL;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import ra.project.model.Description;
+import ra.project.model.Product;
 import ra.project.repository.IDescriptionRepository;
 import ra.project.service.IService.IDescriptionService;
 
@@ -34,5 +35,15 @@ public class DescriptionIMPL implements IDescriptionService {
         if (findById(id)!=null){
             descriptionRepository.deleteById(id);
         }
+    }
+
+    @Override
+    public List<Description> findDescriptionsByProduct(Product product) {
+        return descriptionRepository.findDescriptionsByProduct(product);
+    }
+
+    @Override
+    public boolean existsByDescribe(String des) {
+        return descriptionRepository.existsByDescribe(des);
     }
 }

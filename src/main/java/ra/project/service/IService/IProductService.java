@@ -10,4 +10,5 @@ import java.util.List;
 public interface IProductService extends IGenerateService<Product,Long> {
     List<Product> findProductsByCategory(Category category);
     Page<Product> findAll(Pageable pageable);
+    boolean existsProductByProductName(String name);
 }

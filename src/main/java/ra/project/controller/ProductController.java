@@ -136,9 +136,9 @@ public class ProductController {
         );
     }
 
-    @PutMapping("update/{id}")
+    @PutMapping("update")
     @PreAuthorize("hasAnyAuthority('ADMIN','PM')")
-    public ResponseEntity<?> updateProduct(@PathVariable("id") Long id, @Validated @RequestBody Product productUpdate, BindingResult bindingResult) {
+    public ResponseEntity<?> updateProduct(@Validated @RequestBody Product productUpdate, BindingResult bindingResult) {
         User userLogin =userDetailService.getCurrentUser();
         if (userLogin == null) {
             return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(
@@ -149,7 +149,7 @@ public class ProductController {
                             .build()
             );
         }
-        Product product = productService.findById(id);
+        Product product = productService.findById(productUpdate.getId());
         if (product == null || bindingResult.hasErrors()) {
             ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(
                     ResponseMessage.builder()
@@ -170,7 +170,6 @@ public class ProductController {
                 );
             }
         }
-        productUpdate.setId(id);
         productService.save(productUpdate);
         return ResponseEntity.status(HttpStatus.CREATED).body(
                 ResponseMessage.builder()

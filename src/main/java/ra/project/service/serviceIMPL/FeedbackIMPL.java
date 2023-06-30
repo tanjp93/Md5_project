@@ -3,6 +3,7 @@ package ra.project.service.serviceIMPL;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import ra.project.model.Feedback;
+import ra.project.model.OrderDetail;
 import ra.project.repository.IFeedbackRepository;
 import ra.project.service.IService.IFeedbackService;
 
@@ -33,5 +34,10 @@ public class FeedbackIMPL implements IFeedbackService {
     @Override
     public void deleteById(Long id) {
         feedbackRepository.deleteById(id);
+    }
+
+    @Override
+    public List<Feedback> findFeedbacksByOrderDetail(OrderDetail o) {
+        return feedbackRepository.findFeedbacksByOrderDetail(o);
     }
 }

@@ -42,10 +42,10 @@ public class DescriptionController {
         productService.save(product);
         return new ResponseEntity<>(HttpStatus.OK);
     }
-    @PutMapping("/update/{id}")
+    @PutMapping("/update")
     @PreAuthorize("hasAnyAuthority('ADMIN','PM')")
-    public ResponseEntity<?>UpdateDescription(@PathVariable("id")Long id,@RequestBody Description description,BindingResult bindingResult){
-        Description descriptionBase=descriptionService.findById(id);
+    public ResponseEntity<?>UpdateDescription(@RequestBody Description description,BindingResult bindingResult){
+        Description descriptionBase=descriptionService.findById(description.getId());
         if (bindingResult.hasErrors()){
             return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(
                     ResponseMessage.builder()

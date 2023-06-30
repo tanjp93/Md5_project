@@ -60,4 +60,9 @@ public class ResponseIMPL implements IResponseService {
         }
         return true;
     }
+
+    @Override
+    public List<Response> findResponsesByFeedback(Feedback feedback) {
+        return responseRepository.findResponsesByFeedback(feedback);
+    }
 }

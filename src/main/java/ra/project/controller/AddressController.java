@@ -138,9 +138,9 @@ public class AddressController {
         );
     }
 
-    @PutMapping("/update/{addressId}")
+    @PutMapping("/update")
     @PreAuthorize("hasAnyAuthority('ADMIN','PM','USER')")
-    public ResponseEntity<?> updateAddress(@PathVariable("addressId") Long addressId, @Validated @RequestBody ReceiverAddress updateAddress) {
+    public ResponseEntity<?> updateAddress(@Validated @RequestBody ReceiverAddress updateAddress) {
         User userLogin = userDetailService.getCurrentUser();
         if (userLogin == null) {
             return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(
@@ -163,7 +163,7 @@ public class AddressController {
         }
         for (ReceiverAddress add : addressList) {
             if (add.getPhoneNumber().equals(updateAddress.getPhoneNumber())) {
-                if (add.getId() != addressId) {
+                if (add.getId() != updateAddress.getId()) {
                     return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(
                             ResponseMessage.builder()
                                     .status("FAILED")
@@ -175,10 +175,9 @@ public class AddressController {
             }
         }
         for (ReceiverAddress add : addressList) {
-            if (add.getId().equals(addressId)) {
+            if (add.getId().equals(updateAddress.getId())) {
                 int index = addressList.indexOf(add);
                 updateAddress.setUser(userLogin);
-                updateAddress.setId(addressId);
                 addressList.set(index, updateAddress);
                 receiverAddressService.save(addressList.get(index));
                 //

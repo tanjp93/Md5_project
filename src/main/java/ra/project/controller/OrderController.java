@@ -1,6 +1,7 @@
 package ra.project.controller;
 
 import lombok.RequiredArgsConstructor;
+import org.aspectj.weaver.ast.Or;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -25,6 +26,8 @@ public class OrderController {
     private final IPurchaseHistoryService purchaseHistoryService;
     private final IProductService productService;
     private final IReceiverAddressService addressService;
+    private final IFeedbackService feedbackService;
+    private  final IResponseService responseService;
 
 
     @GetMapping
@@ -167,6 +170,42 @@ public class OrderController {
         }
 
         //k tim thay san pham trong cart
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+    @DeleteMapping("deleteOrderDetail/{id}")
+    @PreAuthorize("hasAnyAuthority('ADMIN','PM','USER')")
+    public ResponseEntity<?>removeCartItem(@PathVariable("id") Long id){
+        OrderDetail orderDetail=orderDetailService.findById(id);
+        if (orderDetail==null||orderDetail.getStatus()!=0){
+            return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(
+                    ResponseMessage.builder()
+                            .status("FAILED")
+                            .message("Not found object to delete!")
+                            .data("")
+                            .build()
+            );
+        }
+        User userLogin=userDetailService.getCurrentUser();
+        if (orderService.findOrderByUser(userLogin).getId()!=orderDetail.getOrder().getId()){
+            return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(
+                    ResponseMessage.builder()
+                            .status("FAILED")
+                            .message("Quantity is over!")
+                            .data("")
+                            .build()
+            );
+        }
+        orderDetail.setPurchaseHistory(null);
+        orderDetail.setOrder(null);
+        List<Feedback>feedbackList=feedbackService.findFeedbacksByOrderDetail(orderDetail);
+        for (Feedback feedback:feedbackList) {
+            List<Response> responses=responseService.findResponsesByFeedback(feedback);
+            for (int i = 0; i <responses.size() ; i++) {
+                responseService.deleteById(responses.get(i).getId());
+            }
+            feedbackService.deleteById(feedback.getId());
+        }
+        orderDetailService.deleteById(orderDetail.getId());
         return new ResponseEntity<>(HttpStatus.OK);
     }
 }

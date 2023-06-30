@@ -52,6 +52,7 @@ public class AuthController {
 
     @PostMapping("/signUp")
     public ResponseEntity<ResponseMessage> doSignUp(@Validated @RequestBody SignUpForm signUpForm, BindingResult bindingResult) throws MessagingException {
+        // nếu mapping dữ liệu
         if (bindingResult.hasErrors()) {
             return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(
                     ResponseMessage.builder()

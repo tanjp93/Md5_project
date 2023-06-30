@@ -52,9 +52,9 @@ public class ResponseController {
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
-    @PostMapping("/{feedBackId}")
+    @PostMapping()
     @PreAuthorize("hasAnyAuthority('ADMIN','PM','USER')")
-    public ResponseEntity<?> addResponse(@PathVariable("feedBackId") Long feedBackId, @RequestBody Response response, BindingResult bindingResult) {
+    public ResponseEntity<?> addResponse(@RequestBody Response response, BindingResult bindingResult) {
         User userLogin = userDetailService.getCurrentUser();
         if (bindingResult.hasErrors()){
             return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(
@@ -64,7 +64,7 @@ public class ResponseController {
                             .data("")
                             .build());
         }
-        boolean check = responseService.checkUserResponseRole(userLogin, feedBackId);
+        boolean check = responseService.checkUserResponseRole(userLogin, response.getFeedback().getId());
         if (!check) {
             if (!userService.checkManageRole(userLogin)) {
                 return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(
@@ -76,7 +76,7 @@ public class ResponseController {
             }
         }
         response.setUser(userLogin);
-        response.setFeedback(feedbackService.findById(feedBackId));
+        response.setFeedback(feedbackService.findById(response.getFeedback().getId()));
         responseService.save(response);
         return new ResponseEntity<>(HttpStatus.OK);
     }

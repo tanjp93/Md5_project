@@ -104,9 +104,9 @@ public class CategoryController {
         );
     }
 
-    @PutMapping("/update/{id}")
+    @PutMapping("/update")
     @PreAuthorize("hasAnyAuthority('ADMIN','PM')")
-    public ResponseEntity<?> updateCategory(@PathVariable("id")Long id,@Validated @RequestBody Category category, BindingResult bindingResult) {
+    public ResponseEntity<?> updateCategory(@Validated @RequestBody Category category, BindingResult bindingResult) {
         User userLogin = userDetailService.getCurrentUser();
         if (bindingResult.hasErrors()) {
             return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(
@@ -126,7 +126,7 @@ public class CategoryController {
                             .build()
             );
         }
-        Category category1 = categoryService.findById(id);
+        Category category1 = categoryService.findById(category.getId());
         if (!category1.getCategoryName().toLowerCase().equals(category.getCategoryName().toLowerCase())){
             if (categoryService.existsCategoryByCategoryName(category.getCategoryName())){
                 return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(
@@ -142,7 +142,6 @@ public class CategoryController {
         for (Role role:roleList) {
             if (role.getName().name().equals("ADMIN")||role.getName().name().equals("PM")) {
                 if (category1!=null){
-                    category.setId(id);
                     categoryService.save(category);
                     return new ResponseEntity<>(HttpStatus.CREATED);
                 }

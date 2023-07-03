@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import ra.project.dto.request.BuyProducts;
+import ra.project.dto.request.OrderProduct;
 import ra.project.dto.response.ResponseMessage;
 import ra.project.model.*;
 import ra.project.security.userPrincipal.UserDetailService;
@@ -50,7 +51,7 @@ public class OrderController {
 
     @PostMapping("/addToCart")
     @PreAuthorize("hasAnyAuthority('ADMIN','PM','USER')")
-    public ResponseEntity<?>addToCart(@RequestBody OrderDetail orderDetail){
+    public ResponseEntity<?>addToCart(@RequestBody OrderProduct orderProduct){
         User userLogin=userDetailService.getCurrentUser();
         if (userLogin==null){
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
@@ -61,10 +62,15 @@ public class OrderController {
                             .build()
             );
         }
+        OrderDetail orderDetail=OrderDetail.builder()
+                .product(productService.findById(orderProduct.getProduct().getId()))
+                .quantity(orderProduct.getQuantity())
+                .status(0)
+                .order(userLogin.getOrder())
+                .feedback(new ArrayList<>())
+                .price(productService.findById(orderProduct.getProduct().getId()).getPrice())
+                .build();
         Order order=orderService.findOrderByUser(userLogin);
-        orderDetail.setStatus(0);
-        orderDetail.setPrice(productService.findById(orderDetail.getProduct().getId()).getPrice());
-        orderDetail.setOrder(order);
         List<OrderDetail>orderDetailList=orderDetailService.findOrderDetailsByOrder(order);
         for (OrderDetail o:orderDetailList ) {
             if (o.getProduct().getId()==orderDetail.getProduct().getId()){

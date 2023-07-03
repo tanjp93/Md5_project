@@ -27,7 +27,7 @@ public class AddressController {
     private final IUserService userService;
 
 
-    @PostMapping("")
+    @PostMapping
     @PreAuthorize("hasAnyAuthority('ADMIN','PM','USER')")
     public ResponseEntity<ResponseMessage> createAddress(@Validated @RequestBody ReceiverAddress address, BindingResult bindingResult) {
         User userLogin = userDetailService.getCurrentUser();
@@ -140,7 +140,16 @@ public class AddressController {
 
     @PutMapping("/update")
     @PreAuthorize("hasAnyAuthority('ADMIN','PM','USER')")
-    public ResponseEntity<?> updateAddress(@Validated @RequestBody ReceiverAddress updateAddress) {
+    public ResponseEntity<?> updateAddress(@Validated @RequestBody ReceiverAddress updateAddress,BindingResult bindingResult) {
+        if (bindingResult.hasErrors()){
+            return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(
+                    ResponseMessage.builder()
+                            .status("FAILED")
+                            .message("Invalid Input!")
+                            .data("")
+                            .build()
+            );
+        }
         User userLogin = userDetailService.getCurrentUser();
         if (userLogin == null) {
             return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(

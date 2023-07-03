@@ -23,10 +23,10 @@ public class DescriptionController {
     private final UserDetailService userDetailService;
     private final IProductService productService;
 
-    @PostMapping("/{productId}")
+    @PostMapping
     @PreAuthorize("hasAnyAuthority('ADMIN','PM')")
-    public ResponseEntity<?> addDescription(@RequestBody Description description, BindingResult bindingResult, @PathVariable("productId") Long productId) {
-        Product product = productService.findById(productId);
+    public ResponseEntity<?> addDescription(@RequestBody Description description, BindingResult bindingResult) {
+        Product product = productService.findById(description.getProduct().getId());
         if (bindingResult.hasErrors() || product == null) {
             return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(
                     ResponseMessage.builder()
@@ -46,7 +46,7 @@ public class DescriptionController {
     @PreAuthorize("hasAnyAuthority('ADMIN','PM')")
     public ResponseEntity<?>UpdateDescription(@RequestBody Description description,BindingResult bindingResult){
         Description descriptionBase=descriptionService.findById(description.getId());
-        if (bindingResult.hasErrors()){
+        if (bindingResult.hasErrors()||descriptionBase==null){
             return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(
                     ResponseMessage.builder()
                             .status("FAILED")
@@ -55,9 +55,16 @@ public class DescriptionController {
                             .build()
             );
         }
-        description.setProduct(descriptionBase.getProduct());
-        description.setId(descriptionBase.getId());
-        return new ResponseEntity<>(descriptionService.save(description),HttpStatus.OK);
+        if (productService.findById(description.getProduct().getId())!=null){
+            return new ResponseEntity<>(descriptionService.save(description),HttpStatus.OK);
+        }
+        return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(
+                ResponseMessage.builder()
+                        .status("FAILED")
+                        .message("Invalid input!")
+                        .data("")
+                        .build()
+        );
     }
     @DeleteMapping("/{descriptionId}")
     @PreAuthorize("hasAnyAuthority('ADMIN','PM')")

@@ -23,7 +23,7 @@ public class OrderDetail {
     private Product product;
     @NotNull
     private Long quantity;
-    //-1: bi huy hang
+    //-1: bi huy
     // 0 : in cart // 1: paid //2: to delivery // 3: delivered
     private int status;
     private float price;

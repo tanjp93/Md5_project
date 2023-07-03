@@ -43,8 +43,8 @@ public class CategoryController {
     }
 
     @GetMapping("/detail")
-    public ResponseEntity<?> getCategoryById(@RequestParam("id") Long id) {
-        Category category = categoryService.findById(id);
+    public ResponseEntity<?> getCategoryById(@RequestBody Category category) {
+        category = categoryService.findById(category.getId());
         if (category != null) {
             return new ResponseEntity(category, HttpStatus.OK);
         }
@@ -79,7 +79,7 @@ public class CategoryController {
                             .build()
             );
         }
-        if (categoryService.existsCategoryByCategoryName(category.getCategoryName())){
+        if (categoryService.existsCategoryByCategoryName(category.getCategoryName())) {
             return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(
                     ResponseMessage.builder()
                             .status("FAILED")
@@ -88,9 +88,9 @@ public class CategoryController {
                             .build()
             );
         }
-        Set<Role> roleList=userLogin.getRoles();
-        for (Role role:roleList) {
-            if (role.getName().name().equals("ADMIN")||role.getName().name().equals("PM")) {
+        Set<Role> roleList = userLogin.getRoles();
+        for (Role role : roleList) {
+            if (role.getName().name().equals("ADMIN") || role.getName().name().equals("PM")) {
                 categoryService.save(category);
                 return new ResponseEntity<>(HttpStatus.CREATED);
             }
@@ -108,7 +108,8 @@ public class CategoryController {
     @PreAuthorize("hasAnyAuthority('ADMIN','PM')")
     public ResponseEntity<?> updateCategory(@Validated @RequestBody Category category, BindingResult bindingResult) {
         User userLogin = userDetailService.getCurrentUser();
-        if (bindingResult.hasErrors()) {
+       Category category1 = categoryService.findById(category.getId());
+        if (bindingResult.hasErrors() || category1 == null) {
             return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(
                     ResponseMessage.builder()
                             .status("FAILED")
@@ -117,7 +118,7 @@ public class CategoryController {
                             .build()
             );
         }
-        if (userLogin==null){
+        if (userLogin == null) {
             return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(
                     ResponseMessage.builder()
                             .status("FAILED")
@@ -126,33 +127,28 @@ public class CategoryController {
                             .build()
             );
         }
-        Category category1 = categoryService.findById(category.getId());
-        if (!category1.getCategoryName().toLowerCase().equals(category.getCategoryName().toLowerCase())){
-            if (categoryService.existsCategoryByCategoryName(category.getCategoryName())){
-                return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(
-                        ResponseMessage.builder()
-                                .status("FAILED")
-                                .message("Category is existed!")
-                                .data("")
-                                .build()
-                );
-            }
+        if (categoryService.existsCategoryByCategoryName(category.getCategoryName())) {
+            return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(
+                    ResponseMessage.builder()
+                            .status("FAILED")
+                            .message("Category is existed!")
+                            .data("")
+                            .build()
+            );
         }
-        Set<Role> roleList=userLogin.getRoles();
-        for (Role role:roleList) {
-            if (role.getName().name().equals("ADMIN")||role.getName().name().equals("PM")) {
-                if (category1!=null){
-                    categoryService.save(category);
-                    return new ResponseEntity<>(HttpStatus.CREATED);
-                }
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
-                        ResponseMessage.builder()
-                                .status("FAILED")
-                                .message("Update failed")
-                                .data("")
-                                .build()
-                );
+        Set<Role> roleList = userLogin.getRoles();
+        for (Role role : roleList) {
+            if (role.getName().name().equals("ADMIN") || role.getName().name().equals("PM")) {
+                categoryService.save(category);
+                return new ResponseEntity<>(HttpStatus.CREATED);
             }
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+                    ResponseMessage.builder()
+                            .status("FAILED")
+                            .message("Update failed")
+                            .data("")
+                            .build()
+            );
         }
         return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(
                 ResponseMessage.builder()
@@ -162,18 +158,19 @@ public class CategoryController {
                         .build()
         );
     }
-    @DeleteMapping("/delete/{id}")
+
+    @DeleteMapping("/delete")
     @PreAuthorize("hasAnyAuthority('ADMIN','PM')")
-    public ResponseEntity<?>deleteById(@PathVariable("id")Long id){
-        Category category=categoryService.findById(id);
-        if (category!=null){
-            if (category.getProductList().isEmpty()||category.getProductList()==null){
-                List<Product>products=category.getProductList();
-                for (Product p:products ) {
+    public ResponseEntity<?> deleteById(@RequestBody Category category) {
+        category = categoryService.findById(category.getId());
+        if (category != null) {
+            if (!category.getProductList().isEmpty() || category.getProductList() != null) {
+                List<Product> products = category.getProductList();
+                for (Product p : products) {
                     p.setCategory(null);
                     productService.save(p);
                 }
-                categoryService.deleteById(id);
+                categoryService.deleteById(category.getId());
                 return ResponseEntity.status(HttpStatus.OK).body(
                         ResponseMessage.builder()
                                 .status("OK")

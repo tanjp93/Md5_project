@@ -5,6 +5,7 @@ import org.springframework.http.HttpRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import ra.project.dto.response.ResponseMessage;
 import ra.project.model.*;
@@ -55,7 +56,7 @@ public class PurchaseHistoryController {
                 }
             }
         }
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+        return ResponseEntity.status(HttpStatus.OK).body(
                 ResponseMessage.builder()
                         .status("OK")
                         .message("Revenue from :"+from+" to :"+to+ " :"+revenue+" (vnd)")
@@ -63,11 +64,22 @@ public class PurchaseHistoryController {
                         .build()
         );
     }
-    @PutMapping("/changeSttOrderDetail/{orderDetail_id}")
+    @PutMapping("/changeSttOrderDetail")
     @PreAuthorize("hasAnyAuthority('ADMIN','PM','USER')")
-    public ResponseEntity<?>updateSttOrderDetail(@PathVariable("orderDetail_id")Long id){
-        OrderDetail orderDetail= orderDetailService.findById(id);
-        if (orderDetail==null){
+    public ResponseEntity<?>updateSttOrderDetail(BindingResult bindingResult,@RequestBody OrderDetail orderDetail){
+        User userLogin=userDetailService.getCurrentUser();
+        boolean checkRoleAdmin= userService.checkManageRole(userLogin);
+        if (bindingResult.hasErrors()){
+            return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(
+                    ResponseMessage.builder()
+                            .status("FAILED")
+                            .message("Invalid input")
+                            .data("")
+                            .build()
+            );
+        }
+        OrderDetail orderDetail1= orderDetailService.findById(orderDetail.getId());
+        if (orderDetail1==null){
             return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(
                     ResponseMessage.builder()
                             .status("FAILED")
@@ -76,7 +88,7 @@ public class PurchaseHistoryController {
                             .build()
             );
         }
-        if (orderDetail.getStatus()>=3||orderDetail.getStatus()<=0){
+        if (orderDetail1.getStatus()>3||orderDetail1.getStatus()<=0){
             return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(
                     ResponseMessage.builder()
                             .status("FAILED")
@@ -84,18 +96,15 @@ public class PurchaseHistoryController {
                             .data("")
                             .build());
         }
-        orderDetail.setStatus(orderDetail.getStatus()+1);
         if (orderDetail.getStatus()>3){
             orderDetail.setStatus(3);
         }
         return new ResponseEntity<>(orderDetailService.save(orderDetail),HttpStatus.OK);
     }
-    @PutMapping("/cancel/{id}")
+    @PutMapping("/cancel")
     @PreAuthorize("hasAnyAuthority('ADMIN','PM','USER')")
-    public ResponseEntity<?>cancelOrderDetail(@PathVariable("id")Long id){
-        OrderDetail orderDetail=orderDetailService.findById(id);
+    public ResponseEntity<?>cancelOrderDetail(@RequestBody OrderDetail orderDetail){
         PurchaseHistory purchaseHistory1=orderDetail.getPurchaseHistory();
-
         if (orderDetail.getStatus()!=1||purchaseHistory1==null){
             return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(
                     ResponseMessage.builder()
@@ -120,7 +129,7 @@ public class PurchaseHistoryController {
         //cancel order
         orderDetail.setOrder(userLogin.getOrder());
         orderDetail.setPurchaseHistory(null);
-        orderDetail.setStatus(0);
+        orderDetail.setStatus(-1);
         orderDetailService.save(orderDetail);
         Product product=orderDetail.getProduct();
         product.setStoke(orderDetail.getQuantity()+ product.getStoke());

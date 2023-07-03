@@ -33,11 +33,10 @@ public class UserController {
 
     private final IUserService userService;
     private final JwtTokenFilter jwtTokenFilter;
-    private final JwtProvider jwtProvider;
     private final PasswordEncoder passwordEncoder;
     private  final UserDetailService userDetailService;
 
-    @GetMapping("")
+    @GetMapping("/allUser")
     @PreAuthorize("hasAnyAuthority('ADMIN','PM')")
     public ResponseEntity<?> findAllUser(Pageable pageable,
                                          @RequestParam("sortBy") String sortBy,
@@ -88,7 +87,7 @@ public class UserController {
         try {
             boolean matches = passwordEncoder.matches(updateUser.getOldPassword(), userLogin.getPassword());
             if (!matches) {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+                return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(
                         ResponseMessage.builder()
                                 .status("FAILED")
                                 .message("Wrong password! ")
@@ -126,8 +125,8 @@ public class UserController {
     }
     @GetMapping("/detail")
     @PreAuthorize("hasAnyAuthority('ADMIN','PM')")
-    public ResponseEntity<?> getUserDetail(@RequestParam("userId") Long id) {
-        User user = userService.findById(id);
+    public ResponseEntity<?> getUserDetail(@RequestBody User user) {
+         user = userService.findById(user.getId());
         if (user == null) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
                     ResponseMessage.builder()
@@ -139,10 +138,10 @@ public class UserController {
         }
         return new ResponseEntity<>(user, HttpStatus.OK);
     }
-    @DeleteMapping("/{id}")
+    @DeleteMapping("/delete")
     @PreAuthorize("hasAnyAuthority('ADMIN')")
-    public ResponseEntity<?> deleteUser(@PathVariable("id") Long id) {
-        User user = userService.findById(id);
+    public ResponseEntity<?> deleteUser(@RequestBody User user) {
+         user = userService.findById(user.getId());
         if (user == null) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
                     ResponseMessage.builder()
@@ -152,7 +151,7 @@ public class UserController {
                             .build()
             );
         }
-        userService.deleteById(id);
+        userService.deleteById(user.getId());
         return new ResponseEntity<>(HttpStatus.OK);
     }
     @GetMapping("/logout")
@@ -187,11 +186,11 @@ public class UserController {
         }
         return false;
     }
-    @PutMapping("/changeStt/{id}")
+    @PutMapping("/changeStt")
     @PreAuthorize("hasAnyAuthority('ADMIN','PM')")
-    public ResponseEntity<?>changeStatus(@PathVariable("id")Long id){
+    public ResponseEntity<?>changeStatus(@RequestBody User user1){
         User userLogin=userDetailService.getCurrentUser();
-        User user1= userService.findById(id);
+        user1=userService.findById(user1.getId());
         if (userLogin==null){
             return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(
                     ResponseMessage.builder()

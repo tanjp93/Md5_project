@@ -45,8 +45,8 @@ public class ProductController {
     }
 
     @GetMapping("/detail")
-    public ResponseEntity<?> findById(@RequestParam("id") Long id) {
-        Product product = productService.findById(id);
+    public ResponseEntity<?> findById(@RequestBody Product product) {
+         product = productService.findById(product.getId());
         if (product == null) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
                     ResponseMessage.builder()
@@ -60,8 +60,8 @@ public class ProductController {
     }
 
     @GetMapping("/searchByCategory")
-    public ResponseEntity<?> getAllProductByCategoryId(@RequestParam("categoryId") Long categoryId) {
-        Category category = categoryService.findById(categoryId);
+    public ResponseEntity<?> getProductsByCategoryId(@RequestBody Category category) {
+        category = categoryService.findById(category.getId());
         List<Product> productList = null;
         if (category != null) {
             productList = productService.findProductsByCategory(category);
@@ -90,7 +90,7 @@ public class ProductController {
                             .build()
             );
         }
-        User userLogin =userDetailService.getCurrentUser();
+        User userLogin = userDetailService.getCurrentUser();
         if (userLogin == null) {
             return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(
                     ResponseMessage.builder()
@@ -100,7 +100,7 @@ public class ProductController {
                             .build()
             );
         }
-        if (productService.existsProductByProductName(product.getProductName())){
+        if (productService.existsProductByProductName(product.getProductName())) {
             return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(
                     ResponseMessage.builder()
                             .status("FAILED")
@@ -109,8 +109,8 @@ public class ProductController {
                             .build()
             );
         }
-        Category category=categoryService.findById(product.getCategory().getId());
-        if (category==null){
+        Category category = categoryService.findById(product.getCategory().getId());
+        if (category == null) {
             return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(
                     ResponseMessage.builder()
                             .status("FAILED")
@@ -119,9 +119,9 @@ public class ProductController {
                             .build()
             );
         }
-        List<Product>productList=category.getProductList();
-        if (productList==null){
-            productList=new ArrayList<>();
+        List<Product> productList = category.getProductList();
+        if (productList == null) {
+            productList = new ArrayList<>();
         }
         productList.add(product);
         category.setProductList(productList);
@@ -135,11 +135,10 @@ public class ProductController {
                         .build()
         );
     }
-
     @PutMapping("update")
     @PreAuthorize("hasAnyAuthority('ADMIN','PM')")
     public ResponseEntity<?> updateProduct(@Validated @RequestBody Product productUpdate, BindingResult bindingResult) {
-        User userLogin =userDetailService.getCurrentUser();
+        User userLogin = userDetailService.getCurrentUser();
         if (userLogin == null) {
             return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(
                     ResponseMessage.builder()
@@ -151,16 +150,25 @@ public class ProductController {
         }
         Product product = productService.findById(productUpdate.getId());
         if (product == null || bindingResult.hasErrors()) {
-            ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(
+            return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(
                     ResponseMessage.builder()
                             .status("FAILED")
-                            .message("Update failed")
+                            .message(" Product not found")
                             .data("")
                             .build()
             );
         }
-        if (!productUpdate.getProductName().toLowerCase().equals(product.getProductName().toLowerCase())){
-            if (productService.existsProductByProductName(productUpdate.getProductName())){
+        if (categoryService.findById(productUpdate.getCategory().getId()) == null) {
+            return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(
+                    ResponseMessage.builder()
+                            .status("FAILED")
+                            .message("Category is not exist")
+                            .data("")
+                            .build()
+            );
+        }
+        if (!productUpdate.getProductName().toLowerCase().equals(product.getProductName().toLowerCase())) {
+            if (productService.existsProductByProductName(productUpdate.getProductName())) {
                 return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(
                         ResponseMessage.builder()
                                 .status("FAILED")
@@ -183,7 +191,7 @@ public class ProductController {
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyAuthority('ADMIN','PM')")
     public ResponseEntity<?> deleteProduct(@PathVariable("id") Long id) {
-        User userLogin =userDetailService.getCurrentUser();
+        User userLogin = userDetailService.getCurrentUser();
         if (userLogin == null) {
             return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(
                     ResponseMessage.builder()
@@ -203,9 +211,9 @@ public class ProductController {
                             .build()
             );
         }
-        List<Description>descriptionList=descriptionService.findDescriptionsByProduct(product);
-        if (descriptionList!=null || !descriptionList.isEmpty()){
-            for (Description de:descriptionList ) {
+        List<Description> descriptionList = descriptionService.findDescriptionsByProduct(product);
+        if (descriptionList != null || !descriptionList.isEmpty()) {
+            for (Description de : descriptionList) {
                 descriptionService.deleteById(de.getId());
             }
         }

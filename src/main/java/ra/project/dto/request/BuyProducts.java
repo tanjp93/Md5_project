@@ -1,11 +1,12 @@
 package ra.project.dto.request;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.*;
+import ra.project.model.OrderDetail;
+import ra.project.model.ReceiverAddress;
 
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
+import javax.persistence.*;
+import java.util.List;
 
 @Entity
 @Getter
@@ -17,5 +18,10 @@ public class BuyProducts {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
+    @OneToOne
+    @JoinColumn(name = "receiverAddress")
+    private ReceiverAddress receiverAddress;
+    @OneToMany
+    @JoinColumn(name = "orderDetail")
+    private List<OrderDetail>orderDetailList;
 }

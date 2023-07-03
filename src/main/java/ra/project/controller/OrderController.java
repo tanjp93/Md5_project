@@ -6,6 +6,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import ra.project.dto.request.BuyProducts;
 import ra.project.dto.response.ResponseMessage;
 import ra.project.model.*;
 import ra.project.security.userPrincipal.UserDetailService;
@@ -76,11 +77,11 @@ public class OrderController {
         order.setOrderDetails(orderDetailList);
         return new ResponseEntity<>( orderDetailService.save(orderDetail),HttpStatus.OK);
     }
-    @PutMapping("/buyProduct/{toAddressId}")
+    @PutMapping("/buyProduct")
     @PreAuthorize("hasAnyAuthority('ADMIN','PM','USER')")
-    public ResponseEntity<?>buyProduct(@PathVariable("toAddressId")Long addressId, @RequestBody List<OrderDetail>buyList ){
+    public ResponseEntity<?>buyProduct(@RequestBody BuyProducts buyProducts){
         User userLogin=userDetailService.getCurrentUser();
-        ReceiverAddress address=addressService.findAddressById(addressId);
+        ReceiverAddress address=addressService.findAddressById(buyProducts.getReceiverAddress().getId());
         if (userLogin==null){
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
                     ResponseMessage.builder()
@@ -118,6 +119,7 @@ public class OrderController {
         Order cart=orderService.findOrderByUser(userLogin);
         List<OrderDetail> orderDetailList=orderDetailService.findOrderDetailsByOrder(cart);
         boolean isExistedOrderDetailId=false;
+        List<OrderDetail>buyList=buyProducts.getOrderDetailList();
         for (OrderDetail orderDetail:orderDetailList) {
             for (OrderDetail o:buyList ) {
                 if (orderDetail.getId()==o.getId()){
@@ -135,12 +137,12 @@ public class OrderController {
                             .build()
             );
         }
-        List<OrderDetail> buyProducts=new ArrayList<>();
+        List<OrderDetail> buyProducts1=new ArrayList<>();
         PurchaseHistory purchaseHistory=PurchaseHistory.builder()
                 .timeBuy(LocalDate.now().toString())
                 .user(userLogin)
                 .address(address)
-                .orderDetails(buyProducts)
+                .orderDetails(buyProducts1)
                 .build();
         purchaseHistory= purchaseHistoryService.save(purchaseHistory);
         Product product;
@@ -150,7 +152,7 @@ public class OrderController {
                     orderDetail.setStatus(1);
                     orderDetail.setOrder(null);
                     orderDetail.setPurchaseHistory(purchaseHistory);
-                    buyProducts.add(orderDetail);
+                    buyProducts1.add(orderDetail);
                     product=productService.findById(orderDetail.getProduct().getId());
                     Long stock1=product.getStoke()-orderDetail.getQuantity();
                     if (stock1<0){

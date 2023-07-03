@@ -55,6 +55,14 @@ public class ResponseController {
     @PostMapping()
     @PreAuthorize("hasAnyAuthority('ADMIN','PM','USER')")
     public ResponseEntity<?> addResponse(@RequestBody Response response, BindingResult bindingResult) {
+        if(feedbackService.findById(response.getFeedback().getId())==null){
+            return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(
+                    ResponseMessage.builder()
+                            .status("FAILED")
+                            .message("Feedback Not found!")
+                            .data("")
+                            .build());
+        }
         User userLogin = userDetailService.getCurrentUser();
         if (bindingResult.hasErrors()){
             return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(
@@ -76,7 +84,6 @@ public class ResponseController {
             }
         }
         response.setUser(userLogin);
-        response.setFeedback(feedbackService.findById(response.getFeedback().getId()));
         responseService.save(response);
         return new ResponseEntity<>(HttpStatus.OK);
     }

@@ -97,8 +97,8 @@ public class OrderController {
                             .build()
             );
         }
-        List<ReceiverAddress>receiverAddresses=addressService.findReceiverAddressByUser(userLogin);
-        if (receiverAddresses==null||receiverAddresses.isEmpty()||address==null){
+        List<ReceiverAddress>receiverAddressList=addressService.findReceiverAddressByUser(userLogin);
+        if (receiverAddressList==null||receiverAddressList.isEmpty()||address==null){
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
                     ResponseMessage.builder()
                             .status("FAILED")
@@ -107,7 +107,7 @@ public class OrderController {
                             .build());
         }
         boolean check=false;
-        for (ReceiverAddress address1:receiverAddresses ) {
+        for (ReceiverAddress address1:receiverAddressList ) {
             if (address1.getId()==address.getId()){
                 address=address1;
                 check=true;

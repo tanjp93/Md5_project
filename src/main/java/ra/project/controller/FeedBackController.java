@@ -28,7 +28,6 @@ public class FeedBackController {
     private final IFeedbackService feedbackService;
     private final UserDetailService userDetailService;
     private final IUserService userService;
-    private final IOrderService orderService;
 
     @GetMapping
     @PreAuthorize("hasAnyAuthority('ADMIN','PM','USER')")
@@ -36,7 +35,15 @@ public class FeedBackController {
         User userLogin=userDetailService.getCurrentUser();
         Feedback feedback = feedbackService.findById(id);
         if (feedback == null||feedback.getUser().getId()!=userLogin.getId()) {
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+            if (!userService.checkManageRole(userLogin)){
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+                        ResponseMessage.builder()
+                                .status("FAILED")
+                                .message("Feedback not found")
+                                .data("")
+                                .build()
+                );
+            }
         }
 
         return ResponseEntity.status(HttpStatus.OK).body(
@@ -68,14 +75,16 @@ public class FeedBackController {
         }else {
             userBuy=orderDetail.getPurchaseHistory().getUser();
         }
-        if (userBuy.getId()!=userLogin.getId()||!userService.checkManageRole(userLogin)){
-            return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(
-                    ResponseMessage.builder()
-                            .status("FAILED")
-                            .message("Can not authenticate user!")
-                            .data("")
-                            .build()
-            );
+        if (!userService.checkManageRole(userLogin)){
+            if (userBuy.getId()!=userLogin.getId()){
+                return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(
+                        ResponseMessage.builder()
+                                .status("FAILED")
+                                .message("Can not authenticate user!")
+                                .data("")
+                                .build()
+                );
+            }
         }
         feedback.setUser(userLogin);
         feedback.setOrderDetail(orderDetail);

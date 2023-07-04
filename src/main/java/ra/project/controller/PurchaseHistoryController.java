@@ -1,6 +1,7 @@
 package ra.project.controller;
 
 import lombok.RequiredArgsConstructor;
+import org.aspectj.weaver.ast.Or;
 import org.springframework.http.HttpRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -28,7 +29,7 @@ public class PurchaseHistoryController {
     @PreAuthorize("hasAnyAuthority('ADMIN','PM')")
     public ResponseEntity<?>getRevenue(@RequestParam("from")String from,@RequestParam("to")String to){
         User user=userDetailService.getCurrentUser();
-        if (user == null) {
+        if (user == null||!userService.checkManageRole(user)) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
                     ResponseMessage.builder()
                             .status("FAILED")
@@ -51,7 +52,7 @@ public class PurchaseHistoryController {
         for (int i = 0; i <purchaseHistories.size() ; i++) {
             List<OrderDetail>orderDetails=purchaseHistories.get(i).getOrderDetails();
             for (int j = 0; j <orderDetails.size(); j++) {
-                if (orderDetails.get(j).getStatus()==3){
+                if (orderDetails.get(j).getStatus()==4){
                     revenue+=orderDetails.get(j).getPrice()*orderDetails.get(j).getQuantity();
                 }
             }
@@ -65,15 +66,23 @@ public class PurchaseHistoryController {
         );
     }
     @PutMapping("/changeSttOrderDetail")
-    @PreAuthorize("hasAnyAuthority('ADMIN','PM','USER')")
-    public ResponseEntity<?>updateSttOrderDetail(BindingResult bindingResult,@RequestBody OrderDetail orderDetail){
-        User userLogin=userDetailService.getCurrentUser();
-        boolean checkRoleAdmin= userService.checkManageRole(userLogin);
-        if (bindingResult.hasErrors()){
+    @PreAuthorize("hasAnyAuthority('ADMIN','PM')")
+    public ResponseEntity<?>updateSttOrderDetail(@RequestBody OrderDetail orderDetail){
+        if (orderDetail.getStatus()==0||orderDetail.getStatus()>4||orderDetail.getStatus()<-2){
             return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(
                     ResponseMessage.builder()
                             .status("FAILED")
-                            .message("Invalid input")
+                            .message("Status is not available!")
+                            .data("")
+                            .build()
+            );
+        }
+        User userLogin=userDetailService.getCurrentUser();
+        if (!userService.checkManageRole(userLogin)){
+            return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(
+                    ResponseMessage.builder()
+                            .status("FAILED")
+                            .message("User Login is not PM!")
                             .data("")
                             .build()
             );
@@ -88,18 +97,8 @@ public class PurchaseHistoryController {
                             .build()
             );
         }
-        if (orderDetail1.getStatus()>3||orderDetail1.getStatus()<=0){
-            return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(
-                    ResponseMessage.builder()
-                            .status("FAILED")
-                            .message("Change status failed!")
-                            .data("")
-                            .build());
-        }
-        if (orderDetail.getStatus()>3){
-            orderDetail.setStatus(3);
-        }
-        return new ResponseEntity<>(orderDetailService.save(orderDetail),HttpStatus.OK);
+        orderDetail1.setStatus(orderDetail.getStatus());
+        return new ResponseEntity<>(orderDetailService.save(orderDetail1),HttpStatus.OK);
     }
     @PutMapping("/cancel")
     @PreAuthorize("hasAnyAuthority('ADMIN','PM','USER')")

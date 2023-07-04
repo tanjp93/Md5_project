@@ -28,9 +28,9 @@ public class OrderDetail {
     private int status;
     private float price;
 //    @Column(name = "timeBuy", columnDefinition = "DATE")
-    @OneToMany(mappedBy = "orderDetail",targetEntity = Feedback.class,fetch = FetchType.LAZY)
+    @OneToOne(mappedBy = "orderDetail",targetEntity = Feedback.class,fetch = FetchType.LAZY)
     @JsonIgnore
-    private List<Feedback> feedback;
+    private Feedback feedback;
     @ManyToOne
     @JsonIgnore
     private Order order;

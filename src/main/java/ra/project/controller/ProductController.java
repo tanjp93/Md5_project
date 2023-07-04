@@ -1,7 +1,6 @@
 package ra.project.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -11,6 +10,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import ra.project.dto.request.CountProductByVote;
 import ra.project.dto.response.ResponseMessage;
 import ra.project.model.Category;
 import ra.project.model.Description;
@@ -46,7 +46,7 @@ public class ProductController {
 
     @GetMapping("/detail")
     public ResponseEntity<?> findById(@RequestBody Product product) {
-         product = productService.findById(product.getId());
+        product = productService.findById(product.getId());
         if (product == null) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
                     ResponseMessage.builder()
@@ -135,6 +135,7 @@ public class ProductController {
                         .build()
         );
     }
+
     @PutMapping("update")
     @PreAuthorize("hasAnyAuthority('ADMIN','PM')")
     public ResponseEntity<?> updateProduct(@Validated @RequestBody Product productUpdate, BindingResult bindingResult) {
@@ -253,5 +254,34 @@ public class ProductController {
         }
         pageable = PageRequest.of(pageable.getPageNumber(), 5, sortTable);
         return pageable;
+    }
+
+// respone message
+
+    @GetMapping("/findProductByVote")
+    @PreAuthorize("hasAnyAuthority('ADMIN','PM')")
+    public ResponseEntity<?> findProductByVote(@RequestParam("vote") Long vote) {
+        if (vote > 5 || vote < 0) {
+            return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(
+                    ResponseMessage.builder()
+                            .status("FAILED")
+                            .message("Invalid vote !")
+                            .data("")
+                            .build());
+        }
+
+        List<Product> productByVoteList = productService.findProductByVote(vote);
+//        for (int i = 0; i < list.size(); i++) {
+//           CountProductByVote productByVote= (CountProductByVote) list.get(i);
+//            productByVoteList.add(productByVote);
+//        }
+//        return ResponseEntity.status(HttpStatus.OK).body(
+//                ResponseMessage.builder()
+//                        .status("OK")
+//                        .message("find success")
+//                        .data(productByVoteList)
+//                        .build());
+//    }
+        return new ResponseEntity<>(productByVoteList, HttpStatus.OK);
     }
 }

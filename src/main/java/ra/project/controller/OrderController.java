@@ -67,7 +67,7 @@ public class OrderController {
                 .quantity(orderProduct.getQuantity())
                 .status(0)
                 .order(userLogin.getOrder())
-                .feedback(new ArrayList<>())
+                .feedback(new Feedback())
                 .price(productService.findById(orderProduct.getProduct().getId()).getPrice())
                 .build();
         Order order=orderService.findOrderByUser(userLogin);
@@ -102,7 +102,7 @@ public class OrderController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
                     ResponseMessage.builder()
                             .status("FAILED")
-                            .message("Create Address first!")
+                            .message("Address is not found!")
                             .data("")
                             .build());
         }

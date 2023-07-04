@@ -40,7 +40,7 @@ public class ResponseController {
             );
         }
         Response response = responseService.findById(id);
-        if (response == null || response.getUser().getId() != userLogin.getId()) {
+        if (response == null){
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
                     ResponseMessage.builder()
                             .status("FAILED")
@@ -48,6 +48,17 @@ public class ResponseController {
                             .data("")
                             .build()
             );
+        }
+        if (response.getUser().getId() != userLogin.getId()) {
+            if (!userService.checkManageRole(userLogin)){
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+                        ResponseMessage.builder()
+                                .status("FAILED")
+                                .message("Not found response!")
+                                .data("")
+                                .build()
+                );
+            }
         }
         return new ResponseEntity<>(response, HttpStatus.OK);
     }

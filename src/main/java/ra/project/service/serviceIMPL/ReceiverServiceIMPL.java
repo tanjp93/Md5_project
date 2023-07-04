@@ -25,6 +25,9 @@ public class ReceiverServiceIMPL implements IReceiverAddressService {
 
     @Override
     public ReceiverAddress findAddressById(Long id) {
+        if (!receiverAddressRepository.findById(id).isPresent()) {
+            return null;
+        }
         return receiverAddressRepository.findById(id).get();
     }
 

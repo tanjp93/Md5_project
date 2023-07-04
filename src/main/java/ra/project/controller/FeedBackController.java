@@ -9,12 +9,10 @@ import org.springframework.web.bind.annotation.*;
 import ra.project.dto.response.ResponseMessage;
 import ra.project.model.Feedback;
 import ra.project.model.OrderDetail;
-import ra.project.model.Role;
 import ra.project.model.User;
 import ra.project.security.userPrincipal.UserDetailService;
 import ra.project.service.IService.IFeedbackService;
 import ra.project.service.IService.IOrderDetailService;
-import ra.project.service.IService.IOrderService;
 import ra.project.service.IService.IUserService;
 
 import java.util.List;
@@ -60,6 +58,15 @@ public class FeedBackController {
     public ResponseEntity<?> addFeedback(@RequestBody Feedback feedback, BindingResult bindingResult) {
         User userLogin = userDetailService.getCurrentUser();
         OrderDetail orderDetail = orderDetailService.findById(feedback.getOrderDetail().getId());
+        if (orderDetail.getStatus()!=4){
+            return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(
+                    ResponseMessage.builder()
+                            .status("FAILED")
+                            .message("You should not provide feedback before the transaction is completed !")
+                            .data("")
+                            .build()
+            );
+        }
         if (bindingResult.hasErrors()||userLogin==null||orderDetail==null) {
             return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(
                     ResponseMessage.builder()

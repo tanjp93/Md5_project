@@ -27,7 +27,7 @@ public class Feedback {
     @OneToMany(mappedBy = "feedback",targetEntity = Response.class,fetch =FetchType.EAGER )
     @JsonIgnore
     private List<Response> responseList;
-    @ManyToOne
+    @OneToOne
     @JoinColumn(name = "orderDetail")
     private OrderDetail orderDetail;
     @Min(1)
